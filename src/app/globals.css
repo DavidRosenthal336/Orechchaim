@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/*
+  Orechchaim design system — "Warm & encouraging".
+  Soft off-blue canvas, deep slate text, one calm blue accent, rounded cards.
+  Light is the default. Dark applies automatically with the OS unless the user
+  forces a mode (.theme-light / .theme-dark on <html>, set by ThemeToggle).
+*/
+
+:root {
+  --canvas: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f9;
+  --foreground: #243044;
+  --muted: #5b6b82;
+  --border: #e2e8f2;
+
+  --accent: #3b6fb0;
+  --accent-strong: #2f5c95;
+  --accent-fg: #ffffff;
+  --accent-soft: #e7eefb;
+
+  --positive: #3e8e6f;
+  --positive-soft: #e3f1ea;
+  --warning: #c2862b;
+  --warning-soft: #f8eed8;
+  --danger: #c2553c;
+  --danger-soft: #f8e3dd;
+
+  --ring: #3b6fb0;
+}
+
+/* Dark token set, shared by OS-auto and the manual override. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light) {
+    --canvas: #0f1722;
+    --surface: #18222f;
+    --surface-2: #1f2b3a;
+    --foreground: #e8edf7;
+    --muted: #93a1b5;
+    --border: #263243;
+
+    --accent: #5c92d6;
+    --accent-strong: #74a3df;
+    --accent-fg: #0f1722;
+    --accent-soft: #1c2f47;
+
+    --positive: #5cb693;
+    --positive-soft: #162a23;
+    --warning: #d9a44e;
+    --warning-soft: #2c2415;
+    --danger: #db7058;
+    --danger-soft: #2e1c17;
+
+    --ring: #5c92d6;
+  }
+}
+
+.theme-dark {
+  --canvas: #0f1722;
+  --surface: #18222f;
+  --surface-2: #1f2b3a;
+  --foreground: #e8edf7;
+  --muted: #93a1b5;
+  --border: #263243;
+
+  --accent: #5c92d6;
+  --accent-strong: #74a3df;
+  --accent-fg: #0f1722;
+  --accent-soft: #1c2f47;
+
+  --positive: #5cb693;
+  --positive-soft: #162a23;
+  --warning: #d9a44e;
+  --warning-soft: #2c2415;
+  --danger: #db7058;
+  --danger-soft: #2e1c17;
+
+  --ring: #5c92d6;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-sans: var(--font-app-sans), var(--font-app-hebrew), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-hebrew: var(--font-app-hebrew), var(--font-app-sans), sans-serif;
+
+  --radius-card: 16px;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hebrew text rendered RTL with the Hebrew typeface. */
+.heb,
+[lang="he"] {
+  font-family: var(--font-hebrew);
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

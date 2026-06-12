@@ -1,0 +1,204 @@
+// Orechchaim — data model
+//
+// Local development uses SQLite (zero setup). For production we switch the
+// `provider` below to "postgresql" and point DATABASE_URL at Neon — see
+// docs/DEPLOY.md. The schema deliberately uses only portable column types
+// (String / Int / Float / Boolean / DateTime) so that switch is clean:
+// no native enums, JSON columns, or array types. "Enum-like" values
+// (roles, day-types, statuses) are stored as String and validated in TS
+// via the unions in src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// A person who uses the app. Either a STUDENT (fills checklists) or a
+/// REBBE (reviews reports + approves אונס). 1:1 today via `rebbeId`, but the
+/// self-relation supports one rebbe overseeing many talmidim later.
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  role  String  @default("STUDENT") // STUDENT | REBBE — see Role in constants.ts
+
+  // Zmanim / calendar localization. Needed to detect Shabbos & Yom Tov
+  // boundaries (for the Motzei unlock) and to know when the civil day rolls.
+  timezone     String  @default("America/New_York")
+  locationName String?
+  latitude     Float?
+  longitude    Float?
+
+  // Nightly reminder preferences.
+  reminderOptIn Boolean @default(true)
+  reminderHour  Int     @default(21) // 0–23 in the user's timezone
+
+  // Student ⇄ Rebbe pairing.
+  rebbeId  String?
+  rebbe    User?   @relation("StudentRebbe", fields: [rebbeId], references: [id])
+  students User[]  @relation("StudentRebbe")
+
+  templates       ChecklistTemplate[]
+  assignments     DayTypeAssignment[]
+  dayEntries      DayEntry[]
+  weeklyReports   WeeklyReport[]      @relation("ReportStudent")
+  decidedOnes     DayEntry[]          @relation("OnesDecider")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Passwordless sign-in token. We store only a hash of the token; the raw
+/// token lives only in the emailed magic link. Single-use, short-lived.
+model MagicToken {
+  id        String    @id @default(cuid())
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+/// A reusable checklist the student builds (e.g. "Standard weekday",
+/// "Shabbos"). Assigned to one or more day-types via DayTypeAssignment.
+model ChecklistTemplate {
+  id          String  @id @default(cuid())
+  userId      String
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  targetCount Int     @default(0) // "requisite number of checks" for a good day
+  order       Int     @default(0)
+  isArchived  Boolean @default(false)
+
+  items       ChecklistItem[]
+  assignments DayTypeAssignment[]
+  dayEntries  DayEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// A single line item within a template (e.g. "Davened with a minyan").
+model ChecklistItem {
+  id         String  @id @default(cuid())
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  label      String
+  order      Int     @default(0)
+  isArchived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+}
+
+/// Maps a day-type to the template that should appear on those days.
+/// At most one template per day-type per user → deterministic resolution.
+model DayTypeAssignment {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayType    String // WEEKDAY | SUNDAY | EREV_SHABBOS | SHABBOS | YOM_TOV | CHOL_HAMOED | ROSH_CHODESH | SPECIAL — see DayType
+  templateId String
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dayType])
+  @@index([templateId])
+}
+
+/// One civil day for one student. Created when the student opens the day.
+/// Items are snapshotted into ItemCheck so later template edits don't
+/// rewrite history.
+model DayEntry {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Local civil date in the user's timezone, "YYYY-MM-DD". Unique per user.
+  dateKey    String
+  hebrewDate String? // display string, e.g. "12 Sivan 5786"
+
+  dayType           String  // resolved day-type for this date
+  overriddenDayType String? // set when the student manually changes today's list
+  templateId        String?
+  template          ChecklistTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  targetCount    Int     @default(0)
+  completedCount Int     @default(0)
+  status         String  @default("OPEN") // OPEN | SUBMITTED
+  met            Boolean @default(false)  // hit target OR accepted אונס
+
+  // אונס workflow.
+  onesRequested Boolean   @default(false)
+  onesReason    String?
+  onesStatus    String?   // null | PENDING | ACCEPTED | DENIED
+  onesDecidedById String?
+  onesDecidedBy   User?     @relation("OnesDecider", fields: [onesDecidedById], references: [id], onDelete: SetNull)
+  onesDecidedAt   DateTime?
+
+  // The day is editable until lockedAt; for Shabbos/Yom Tov, unlocks Motzei.
+  unlocksAt   DateTime?
+  lockedAt    DateTime?
+  submittedAt DateTime?
+
+  checks ItemCheck[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dateKey])
+  @@index([userId])
+  @@index([onesStatus])
+}
+
+/// Snapshot of one checklist item's state for a given day.
+model ItemCheck {
+  id         String   @id @default(cuid())
+  dayEntryId String
+  dayEntry   DayEntry @relation(fields: [dayEntryId], references: [id], onDelete: Cascade)
+  itemId     String?  // original item id (nullable: item may be deleted later)
+  itemLabel  String   // snapshot of the label at creation time
+  order      Int      @default(0)
+  checked    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dayEntryId])
+}
+
+/// A generated weekly summary (Sunday → Motzei Shabbos) for one student.
+model WeeklyReport {
+  id        String @id @default(cuid())
+  studentId String
+  student   User   @relation("ReportStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  weekStartKey String // "YYYY-MM-DD" (Sunday)
+  weekEndKey   String // "YYYY-MM-DD" (Shabbos)
+
+  daysTracked  Int @default(0)
+  daysMet      Int @default(0)
+  onesAccepted Int @default(0)
+  onesDenied   Int @default(0)
+  onesPending  Int @default(0)
+
+  payload String  // JSON string with the full per-day + per-item breakdown
+  sentAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, weekStartKey])
+  @@index([studentId])
+}
