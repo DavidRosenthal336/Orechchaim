@@ -5,16 +5,18 @@ export const ROLES = ["STUDENT", "REBBE"] as const;
 export type Role = (typeof ROLES)[number];
 
 /// Day-types, in resolution-precedence order (highest first). The day-type
-/// engine picks the first one that matches a given date.
+/// engine picks the first one that matches a given date. SHABBOS outranks
+/// CHOL_HAMOED because Shabbos Chol Hamoed is still Shabbos (no phone).
+/// SPECIAL is applied only via the manual override, never auto-detected.
 export const DAY_TYPES = [
   "YOM_TOV",
-  "CHOL_HAMOED",
   "SHABBOS",
+  "CHOL_HAMOED",
   "EREV_SHABBOS",
   "ROSH_CHODESH",
   "SUNDAY",
-  "SPECIAL",
   "WEEKDAY",
+  "SPECIAL",
 ] as const;
 export type DayType = (typeof DAY_TYPES)[number];
 

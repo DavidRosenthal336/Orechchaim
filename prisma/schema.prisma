@@ -32,6 +32,12 @@ model User {
   locationName String?
   latitude     Float?
   longitude    Float?
+  inIsrael     Boolean @default(false) // Israel vs. Diaspora yom-tov schedule
+
+  // Bein Hazmanim mode: when on, ordinary weekdays (Mon–Thu) use the lighter
+  // Sunday/Friday-style checklist. Shabbos & Yom Tov are unaffected.
+  beinHazmanimMode       Boolean @default(false)
+  beinHazmanimTargetType String  @default("SUNDAY") // day-type weekdays mirror
 
   // Nightly reminder preferences.
   reminderOptIn Boolean @default(true)
