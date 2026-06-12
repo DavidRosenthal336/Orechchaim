@@ -40,8 +40,9 @@ model User {
   beinHazmanimTargetType String  @default("SUNDAY") // day-type weekdays mirror
 
   // Nightly reminder preferences.
-  reminderOptIn Boolean @default(true)
-  reminderHour  Int     @default(21) // 0–23 in the user's timezone
+  reminderOptIn       Boolean @default(true)
+  reminderHour        Int     @default(21) // 0–23 in the user's timezone
+  lastReminderDateKey String? // de-dupes reminder sends to once per local day
 
   // Student ⇄ Rebbe pairing.
   rebbeId  String?
