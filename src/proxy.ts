@@ -8,6 +8,7 @@ import { decrypt, SESSION_COOKIE } from "@/lib/session";
 const PUBLIC_PATHS = ["/", "/login"];
 const PROTECTED_PREFIXES = [
   "/today",
+  "/day",
   "/rebbe",
   "/settings",
   "/checklists",
