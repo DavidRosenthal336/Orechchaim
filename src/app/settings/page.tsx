@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { requireUser } from "@/lib/dal";
+import { db } from "@/lib/db";
 import { SettingsForm } from "./settings-form";
+import { RebbeInvite } from "@/components/rebbe-invite";
 
 function timezones(): string[] {
   const supported = (
@@ -12,6 +14,13 @@ function timezones(): string[] {
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const rebbe =
+    user.role === "STUDENT" && user.rebbeId
+      ? await db.user.findUnique({
+          where: { id: user.rebbeId },
+          select: { email: true },
+        })
+      : null;
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
@@ -38,6 +47,12 @@ export default async function SettingsPage() {
             beinHazmanimMode: user.beinHazmanimMode,
           }}
         />
+
+        {user.role === "STUDENT" ? (
+          <div className="mt-5">
+            <RebbeInvite currentEmail={rebbe?.email ?? null} />
+          </div>
+        ) : null}
       </main>
     </div>
   );
