@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ListChecks, Settings, ChevronRight, Moon } from "lucide-react";
+import { ListChecks, Settings, ChevronRight, Moon, CalendarDays } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { todayKey, formatCivilDate } from "@/lib/calendar";
 import { getCatchUpDays } from "@/lib/day";
@@ -10,7 +9,6 @@ import { Card } from "@/components/ui";
 
 export default async function TodayPage() {
   const user = await requireUser();
-  if (user.role === "REBBE") redirect("/rebbe");
 
   const dateKey = todayKey(user.timezone);
   const catchUp = await getCatchUpDays(user);
@@ -50,6 +48,15 @@ export default async function TodayPage() {
         ) : null}
 
         <nav className="mt-8 space-y-3 border-t border-border pt-6">
+          <Link href="/history">
+            <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-surface-2">
+              <span className="flex items-center gap-3">
+                <CalendarDays className="h-5 w-5 text-accent" />
+                <span className="font-medium">Past weeks</span>
+              </span>
+              <ChevronRight className="h-5 w-5 text-muted" />
+            </Card>
+          </Link>
           <Link href="/checklists">
             <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-surface-2">
               <span className="flex items-center gap-3">

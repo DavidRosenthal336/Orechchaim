@@ -118,12 +118,13 @@ export async function recomputeEntry(dayEntryId: string): Promise<void> {
   });
   if (!entry) return;
   const completedCount = entry.checks.filter((c) => c.checked).length;
-  const met =
-    (entry.targetCount > 0 && completedCount >= entry.targetCount) ||
-    entry.onesStatus === "ACCEPTED";
+  const onesCount = entry.checks.filter((c) => c.ones).length;
+  // Excused (אונס) items count toward the target, so they don't count against
+  // the score: a day is met when done + excused reaches the target.
+  const met = entry.targetCount > 0 && completedCount + onesCount >= entry.targetCount;
   await db.dayEntry.update({
     where: { id: dayEntryId },
-    data: { completedCount, met },
+    data: { completedCount, met, onesRequested: onesCount > 0 },
   });
 }
 

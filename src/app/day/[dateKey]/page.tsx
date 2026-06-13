@@ -14,7 +14,6 @@ export default async function DayPage({
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) redirect("/today");
 
   const user = await requireUser();
-  if (user.role === "REBBE") redirect("/rebbe");
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">

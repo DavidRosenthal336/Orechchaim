@@ -9,15 +9,10 @@ const PUBLIC_PATHS = ["/", "/login"];
 const PROTECTED_PREFIXES = [
   "/today",
   "/day",
-  "/rebbe",
   "/settings",
   "/checklists",
   "/history",
 ];
-
-function homeFor(role: string | undefined): string {
-  return role === "REBBE" ? "/rebbe" : "/today";
-}
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -34,7 +29,7 @@ export async function proxy(req: NextRequest) {
 
   // Signed-in users shouldn't see the login page.
   if (session?.userId && PUBLIC_PATHS.includes(path)) {
-    return NextResponse.redirect(new URL(homeFor(session.role), req.nextUrl));
+    return NextResponse.redirect(new URL("/today", req.nextUrl));
   }
 
   return NextResponse.next();

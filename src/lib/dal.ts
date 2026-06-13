@@ -4,7 +4,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { decrypt, SESSION_COOKIE, type SessionPayload } from "@/lib/session";
-import type { Role } from "@/lib/constants";
 
 /// Reads + verifies the session cookie. Memoized per render pass.
 export const getSession = cache(async (): Promise<SessionPayload | null> => {
@@ -38,12 +37,3 @@ export const requireUser = cache(async () => {
   if (!user) redirect("/login");
   return user;
 });
-
-/// Requires a user with a specific role; redirects elsewhere otherwise.
-export async function requireRole(role: Role) {
-  const user = await requireUser();
-  if (user.role !== role) {
-    redirect(user.role === "REBBE" ? "/rebbe" : "/today");
-  }
-  return user;
-}

@@ -2,80 +2,60 @@ import "server-only";
 import { DateTime } from "luxon";
 import { db } from "@/lib/db";
 import { todayKey } from "@/lib/calendar";
-import { weekStartKey, weekEndKey, weekDayKeys, shiftWeeks, formatWeekRange } from "@/lib/week";
-import { getWeekBoard } from "@/lib/rebbe";
+import { weekStartKey, weekEndKey, shiftWeeks, formatWeekRange } from "@/lib/week";
+import { getWeekBoard } from "@/lib/progress";
 import { sendWeeklyReport, type WeeklyReportEmail } from "@/lib/email";
-import { getAppUrl } from "@/lib/appUrl";
 
-const LINE_STATUS: Record<string, string | null> = {
-  GOOD: "Good day",
-  SHORT: "Short",
-  ONES_PENDING: "אונס — awaiting you",
-  MISSED: "Missed",
-  OPEN: "Missed",
-  UPCOMING: null,
-  ASSUR_WAIT: null,
-  NO_CHECKLIST: null,
+type ReportStudent = Parameters<typeof getWeekBoard>[0] & {
+  name: string | null;
+  email: string;
+  rebbeEmail: string | null;
+  rebbeName: string | null;
 };
 
-async function buildReportData(
-  student: { id: string; name: string | null; email: string } & Parameters<
-    typeof getWeekBoard
-  >[0],
-  weekStart: string,
-  now: Date,
-) {
-  const dayKeys = weekDayKeys(weekStart);
+async function buildReportData(student: ReportStudent, weekStart: string, now: Date) {
   const board = await getWeekBoard(student, weekStart, now);
 
-  const entries = await db.dayEntry.findMany({
-    where: { userId: student.id, dateKey: { in: dayKeys } },
-    select: { status: true, met: true, onesStatus: true },
-  });
+  let daysGood = 0;
+  let daysShort = 0;
+  const lines: string[] = [];
 
-  const daysTracked = entries.filter((e) => e.status === "SUBMITTED").length;
-  const daysMet = entries.filter((e) => e.status === "SUBMITTED" && e.met).length;
-  const onesAccepted = entries.filter((e) => e.onesStatus === "ACCEPTED").length;
-  const onesDenied = entries.filter((e) => e.onesStatus === "DENIED").length;
-  const onesPending = entries.filter((e) => e.onesStatus === "PENDING").length;
+  for (const d of board) {
+    const dow = DateTime.fromISO(d.dateKey).toFormat("ccc LLL d");
+    const excused = d.onesCount > 0 ? ` · ${d.onesCount} excused (אונס)` : "";
+    if (d.status === "GOOD") {
+      daysGood++;
+      lines.push(`${dow} — Good (${d.completed}/${d.target})${excused}`);
+    } else if (d.status === "SHORT") {
+      daysShort++;
+      lines.push(`${dow} — Short (${d.completed}/${d.target})${excused}`);
+    } else if (d.status === "MISSED" || d.status === "OPEN") {
+      lines.push(`${dow} — Not filled in`);
+    }
+  }
 
-  const lines = board
-    .map((d) => {
-      const label = LINE_STATUS[d.status];
-      if (!label) return null;
-      const dow = DateTime.fromISO(d.dateKey).toFormat("ccc LLL d");
-      return `${dow} — ${label}`;
-    })
-    .filter((l): l is string => l !== null);
-
-  return { daysTracked, daysMet, onesAccepted, onesDenied, onesPending, lines };
+  return { daysGood, daysShort, daysTracked: daysGood + daysShort, lines };
 }
 
 /// Generates + emails any not-yet-sent weekly reports for the most recently
-/// completed week. Idempotent (WeeklyReport unique per student+week).
+/// completed week, to each student's rebbe email. Idempotent (WeeklyReport is
+/// unique per student + week).
 export async function generateAndSendWeeklyReports(
   now: Date = new Date(),
 ): Promise<{ sent: number; skipped: number }> {
-  const base = getAppUrl();
   const students = await db.user.findMany({
-    where: { role: "STUDENT", rebbeId: { not: null } },
+    where: { rebbeEmail: { not: null } },
   });
 
   let sent = 0;
   let skipped = 0;
 
   for (const student of students) {
-    if (!student.rebbeId) continue;
-    const rebbe = await db.user.findUnique({
-      where: { id: student.rebbeId },
-      select: { email: true },
-    });
-    if (!rebbe) {
+    if (!student.rebbeEmail) {
       skipped++;
       continue;
     }
 
-    // Skip students who haven't set up any checklist yet.
     const hasChecklist = await db.checklistTemplate.count({
       where: { userId: student.id, isArchived: false },
     });
@@ -110,10 +90,10 @@ export async function generateAndSendWeeklyReports(
         weekStartKey: completedWeekStart,
         weekEndKey: weekEndKey(completedWeekStart),
         daysTracked: data.daysTracked,
-        daysMet: data.daysMet,
-        onesAccepted: data.onesAccepted,
-        onesDenied: data.onesDenied,
-        onesPending: data.onesPending,
+        daysMet: data.daysGood,
+        onesAccepted: 0,
+        onesDenied: data.daysShort,
+        onesPending: 0,
         payload: JSON.stringify(data),
         sentAt: new Date(),
       },
@@ -122,14 +102,12 @@ export async function generateAndSendWeeklyReports(
     const email: WeeklyReportEmail = {
       studentName: student.name ?? student.email,
       weekRange: formatWeekRange(completedWeekStart),
-      daysMet: data.daysMet,
+      daysGood: data.daysGood,
+      daysShort: data.daysShort,
       daysTracked: data.daysTracked,
-      onesAccepted: data.onesAccepted,
-      onesPending: data.onesPending,
       lines: data.lines,
-      dashboardUrl: `${base}/rebbe`,
     };
-    await sendWeeklyReport(rebbe.email, email);
+    await sendWeeklyReport(student.rebbeEmail, email);
     sent++;
   }
 

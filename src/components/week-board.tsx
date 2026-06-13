@@ -1,11 +1,10 @@
 import { DateTime } from "luxon";
-import type { BoardDay, DayBoardStatus } from "@/lib/rebbe";
+import type { BoardDay, DayBoardStatus } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 const STATUS: Record<DayBoardStatus, { label: string; cls: string }> = {
   GOOD: { label: "Good", cls: "bg-positive-soft text-positive" },
   SHORT: { label: "Short", cls: "bg-danger-soft text-danger" },
-  ONES_PENDING: { label: "אונס pending", cls: "bg-warning-soft text-warning" },
   OPEN: { label: "Open", cls: "bg-accent-soft text-accent" },
   MISSED: { label: "Missed", cls: "bg-surface-2 text-muted" },
   UPCOMING: { label: "—", cls: "text-muted" },
@@ -19,6 +18,7 @@ export function WeekBoard({ days }: { days: BoardDay[] }) {
       {days.map((d) => {
         const s = STATUS[d.status];
         const dow = DateTime.fromISO(d.dateKey).toFormat("ccc");
+        const showCount = d.status === "GOOD" || d.status === "SHORT";
         return (
           <li
             key={d.dateKey}
@@ -31,13 +31,13 @@ export function WeekBoard({ days }: { days: BoardDay[] }) {
                   {DateTime.fromISO(d.dateKey).toFormat("MMM d")}
                 </span>
               </p>
-              <p className="truncate text-xs text-muted">{d.label}</p>
+              <p className="truncate text-xs text-muted">
+                {d.label}
+                {d.onesCount > 0 ? ` · ${d.onesCount} excused` : ""}
+              </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {d.target > 0 &&
-              (d.status === "GOOD" ||
-                d.status === "SHORT" ||
-                d.status === "ONES_PENDING") ? (
+              {showCount && d.target > 0 ? (
                 <span className="text-xs tabular-nums text-muted">
                   {d.completed}/{d.target}
                 </span>

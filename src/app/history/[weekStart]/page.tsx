@@ -3,34 +3,26 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { weekStartKey, formatWeekRange } from "@/lib/week";
-import { getTalmidim, getWeekBoard } from "@/lib/rebbe";
+import { getWeekBoard } from "@/lib/progress";
 import { WeekBoard } from "@/components/week-board";
-import { Card } from "@/components/ui";
 
-export default async function RebbeWeekPage({
+export default async function HistoryWeekPage({
   params,
 }: {
   params: Promise<{ weekStart: string }>;
 }) {
   const { weekStart } = await params;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) redirect("/rebbe");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) redirect("/history");
 
   const user = await requireUser();
-  if (user.role !== "REBBE") redirect("/today");
-
-  const talmidim = await getTalmidim(user.id);
-  if (talmidim.length === 0) redirect("/rebbe");
-  const student = talmidim[0];
-
-  // Normalize to the actual Sunday of that week.
   const normalized = weekStartKey(weekStart);
-  const board = await getWeekBoard(student, normalized);
+  const board = await getWeekBoard(user, normalized);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center gap-2 py-5">
         <Link
-          href="/rebbe"
+          href="/history"
           className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface hover:bg-surface-2"
           aria-label="Back"
         >
@@ -41,15 +33,8 @@ export default async function RebbeWeekPage({
         </h1>
       </header>
 
-      <main className="flex-1 space-y-4 py-2 pb-10">
-        <p className="text-sm text-muted">
-          {student.name ?? student.email}
-        </p>
+      <main className="flex-1 pb-10">
         <WeekBoard days={board} />
-        <Card className="text-xs leading-relaxed text-muted">
-          Accepted <span className="heb">אונס</span> days show as a good day.
-          Denied ones remain short.
-        </Card>
       </main>
     </div>
   );

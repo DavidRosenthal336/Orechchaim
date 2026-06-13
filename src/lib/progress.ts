@@ -16,7 +16,6 @@ export type DayBoardStatus =
   | "OPEN"
   | "GOOD"
   | "SHORT"
-  | "ONES_PENDING"
   | "MISSED"
   | "ASSUR_WAIT"
   | "NO_CHECKLIST";
@@ -28,19 +27,11 @@ export type BoardDay = {
   status: DayBoardStatus;
   completed: number;
   target: number;
-  onesStatus: string | null;
+  onesCount: number; // items excused (אונס) that day
   isAssurMelacha: boolean;
 };
 
-/// Talmidim linked to a rebbe.
-export async function getTalmidim(rebbeId: string) {
-  return db.user.findMany({
-    where: { rebbeId },
-    orderBy: { createdAt: "asc" },
-  });
-}
-
-/// Per-day board for one student's week.
+/// Per-day board for a student's week (used in their own history view).
 export async function getWeekBoard(
   student: StudentRecord,
   weekStart: string,
@@ -51,6 +42,7 @@ export async function getWeekBoard(
 
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { in: dayKeys } },
+    include: { checks: { where: { ones: true }, select: { id: true } } },
   });
   const byKey = new Map(entries.map((e) => [e.dateKey, e]));
 
@@ -69,8 +61,7 @@ export async function getWeekBoard(
 
     let status: DayBoardStatus;
     if (entry) {
-      if (entry.onesStatus === "PENDING") status = "ONES_PENDING";
-      else if (entry.status === "SUBMITTED") status = entry.met ? "GOOD" : "SHORT";
+      if (entry.status === "SUBMITTED") status = entry.met ? "GOOD" : "SHORT";
       else if (window.state === "OPEN") status = "OPEN";
       else status = "MISSED";
     } else if (window.state === "FUTURE") {
@@ -92,34 +83,17 @@ export async function getWeekBoard(
       status,
       completed: entry?.completedCount ?? 0,
       target: entry?.targetCount ?? 0,
-      onesStatus: entry?.onesStatus ?? null,
+      onesCount: entry?.checks.length ?? 0,
       isAssurMelacha: resolution.isAssurMelacha,
     };
-  });
-}
-
-/// Pending אונס requests for a student, newest first.
-export async function getPendingOnes(studentId: string) {
-  return db.dayEntry.findMany({
-    where: { userId: studentId, onesStatus: "PENDING" },
-    orderBy: { dateKey: "desc" },
-    select: {
-      id: true,
-      dateKey: true,
-      hebrewDate: true,
-      dayType: true,
-      onesReason: true,
-      completedCount: true,
-      targetCount: true,
-    },
   });
 }
 
 export type WeekSummary = {
   weekStart: string;
   daysTracked: number;
-  daysMet: number;
-  onesPending: number;
+  daysGood: number;
+  daysShort: number;
 };
 
 /// Summary of the last `weeks` weeks for a student, newest first.
@@ -133,25 +107,22 @@ export async function getStudentHistory(
 
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { gte: earliest } },
-    select: { dateKey: true, status: true, met: true, onesStatus: true },
+    select: { dateKey: true, status: true, met: true },
   });
 
   const summaries: WeekSummary[] = [];
   for (let i = 0; i < weeks; i++) {
     const weekStart = shiftWeeks(currentWeek, -i);
     const days = new Set(weekDayKeys(weekStart));
-    const inWeek = entries.filter((e) => days.has(e.dateKey));
+    const submitted = entries.filter(
+      (e) => days.has(e.dateKey) && e.status === "SUBMITTED",
+    );
     summaries.push({
       weekStart,
-      daysTracked: inWeek.filter((e) => e.status === "SUBMITTED").length,
-      daysMet: inWeek.filter((e) => e.status === "SUBMITTED" && e.met).length,
-      onesPending: inWeek.filter((e) => e.onesStatus === "PENDING").length,
+      daysTracked: submitted.length,
+      daysGood: submitted.filter((e) => e.met).length,
+      daysShort: submitted.filter((e) => !e.met).length,
     });
   }
   return summaries;
-}
-
-/// Loads a student owned by this rebbe, or null.
-export async function getOwnedStudent(rebbeId: string, studentId: string) {
-  return db.user.findFirst({ where: { id: studentId, rebbeId } });
 }

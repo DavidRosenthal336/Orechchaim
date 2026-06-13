@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -62,7 +61,27 @@ export async function toggleItem(
 
   await db.itemCheck.updateMany({
     where: { id: itemCheckId, dayEntryId },
-    data: { checked: Boolean(checked) },
+    // Checking an item clears any אונס on it.
+    data: { checked: Boolean(checked), ones: checked ? false : undefined },
+  });
+  await recomputeEntry(dayEntryId);
+  revalidateDay(entry.dateKey);
+}
+
+/// Marks a single item as אונס (excused) or clears it. Excused items don't
+/// count against the day's score. Called optimistically from the client.
+export async function setItemOnes(
+  dayEntryId: string,
+  itemCheckId: string,
+  ones: boolean,
+): Promise<void> {
+  const { user, entry } = await loadOwned(dayEntryId);
+  if (entry.status === "SUBMITTED" || !isWindowOpen(user, entry.dateKey)) return;
+
+  await db.itemCheck.updateMany({
+    where: { id: itemCheckId, dayEntryId },
+    // Excusing an item clears its done state.
+    data: { ones: Boolean(ones), checked: ones ? false : undefined },
   });
   await recomputeEntry(dayEntryId);
   revalidateDay(entry.dateKey);
@@ -88,58 +107,6 @@ export async function reopenDay(formData: FormData): Promise<void> {
     where: { id: entry.id },
     data: { status: "OPEN", submittedAt: null },
   });
-  revalidateDay(entry.dateKey);
-}
-
-const reasonSchema = z
-  .string()
-  .trim()
-  .min(3, "Please give a short reason.")
-  .max(500);
-
-export type OnesState = { error?: string };
-
-export async function requestOnes(
-  _prev: OnesState,
-  formData: FormData,
-): Promise<OnesState> {
-  const { user, entry } = await loadOwned(String(formData.get("dayEntryId")));
-  if (!isWindowOpen(user, entry.dateKey)) return {};
-
-  const reason = reasonSchema.safeParse(formData.get("reason"));
-  if (!reason.success) {
-    return { error: reason.error.issues[0]?.message ?? "Invalid reason." };
-  }
-
-  await db.dayEntry.update({
-    where: { id: entry.id },
-    data: {
-      onesRequested: true,
-      onesReason: reason.data,
-      onesStatus: "PENDING",
-      onesDecidedById: null,
-      onesDecidedAt: null,
-    },
-  });
-  await recomputeEntry(entry.id);
-  revalidateDay(entry.dateKey);
-  return {};
-}
-
-export async function cancelOnes(formData: FormData): Promise<void> {
-  const { user, entry } = await loadOwned(String(formData.get("dayEntryId")));
-  if (!isWindowOpen(user, entry.dateKey)) return;
-  if (entry.onesStatus !== "PENDING") return; // can't retract once decided
-
-  await db.dayEntry.update({
-    where: { id: entry.id },
-    data: {
-      onesRequested: false,
-      onesReason: null,
-      onesStatus: null,
-    },
-  });
-  await recomputeEntry(entry.id);
   revalidateDay(entry.dateKey);
 }
 

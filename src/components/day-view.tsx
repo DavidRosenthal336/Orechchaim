@@ -6,7 +6,6 @@ import { formatCivilDate } from "@/lib/calendar";
 import { DAY_TYPE_LABELS, type DayType } from "@/lib/constants";
 import { submitDay, reopenDay, setDayOverride } from "@/app/actions/day";
 import { DayChecklist } from "@/components/day-checklist";
-import { OnesPanel } from "@/components/ones-panel";
 import { Card, Button, ButtonLink } from "@/components/ui";
 import { isHebrew } from "@/lib/utils";
 
@@ -119,6 +118,7 @@ export async function DayView({
     id: c.id,
     label: c.itemLabel,
     checked: c.checked,
+    ones: c.ones,
     hebrew: isHebrew(c.itemLabel),
   }));
   const editable = window.state === "OPEN" && entry.status !== "SUBMITTED";
@@ -151,6 +151,7 @@ export async function DayView({
               </p>
               <p className="text-xs text-muted">
                 {entry.completedCount} of {entry.targetCount} done
+                {entry.onesRequested ? " · אונס excused" : ""}
               </p>
             </div>
             {window.state === "OPEN" ? (
@@ -174,15 +175,6 @@ export async function DayView({
             This day is closed — it can no longer be edited.
           </Card>
         ) : null}
-
-        <Card>
-          <OnesPanel
-            dayEntryId={entry.id}
-            onesStatus={entry.onesStatus}
-            onesReason={entry.onesReason}
-            editable={editable}
-          />
-        </Card>
 
         {editable && assignments.length > 0 ? (
           <details className="rounded-2xl border border-border bg-surface px-5">

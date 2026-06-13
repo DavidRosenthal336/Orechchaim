@@ -11,19 +11,13 @@ type Props = {
     name: string;
     timezone: string;
     inIsrael: boolean;
-    reminderOptIn: boolean;
-    reminderHour: number;
     beinHazmanimMode: boolean;
+    rebbeName: string;
+    rebbeEmail: string;
   };
 };
 
 const initialState: SettingsState = {};
-
-function hourLabel(h: number): string {
-  const ampm = h < 12 ? "AM" : "PM";
-  const display = h % 12 === 0 ? 12 : h % 12;
-  return `${display}:00 ${ampm}`;
-}
 
 export function SettingsForm({ timezones, initial }: Props) {
   const [state, action, pending] = useActionState(updateSettings, initialState);
@@ -61,7 +55,7 @@ export function SettingsForm({ timezones, initial }: Props) {
             ))}
           </select>
           <p className="mt-1.5 text-xs text-muted">
-            Sets when your day rolls over and your reminder is sent.
+            Sets when your day rolls over.
           </p>
         </div>
 
@@ -73,33 +67,38 @@ export function SettingsForm({ timezones, initial }: Props) {
         />
       </Card>
 
-      <Card className="space-y-5">
-        <h2 className="text-sm font-semibold text-muted">Reminders</h2>
-        <Switch
-          name="reminderOptIn"
-          defaultChecked={initial.reminderOptIn}
-          label="Nightly reminder"
-          description="A nudge each night to fill in the day's checklist."
-        />
+      <Card className="space-y-4">
         <div>
-          <label
-            htmlFor="reminderHour"
-            className="mb-1.5 block text-sm font-medium"
-          >
-            Reminder time
+          <h2 className="text-sm font-semibold text-foreground">Your rebbe</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Where your weekly report is emailed. Your rebbe doesn&apos;t need an
+            account — he just receives the report.
+          </p>
+        </div>
+        <div>
+          <label htmlFor="rebbeName" className="mb-1.5 block text-sm font-medium">
+            Rebbe&apos;s name
           </label>
-          <select
-            id="reminderHour"
-            name="reminderHour"
-            defaultValue={String(initial.reminderHour)}
+          <input
+            id="rebbeName"
+            name="rebbeName"
+            defaultValue={initial.rebbeName}
+            placeholder="Optional"
             className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
-          >
-            {Array.from({ length: 24 }, (_, h) => (
-              <option key={h} value={h}>
-                {hourLabel(h)}
-              </option>
-            ))}
-          </select>
+          />
+        </div>
+        <div>
+          <label htmlFor="rebbeEmail" className="mb-1.5 block text-sm font-medium">
+            Rebbe&apos;s email
+          </label>
+          <input
+            id="rebbeEmail"
+            name="rebbeEmail"
+            type="email"
+            defaultValue={initial.rebbeEmail}
+            placeholder="rebbe@example.com"
+            className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
+          />
         </div>
       </Card>
 
@@ -122,9 +121,7 @@ export function SettingsForm({ timezones, initial }: Props) {
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save settings"}
         </Button>
-        {state.ok ? (
-          <span className="text-sm text-positive">Saved.</span>
-        ) : null}
+        {state.ok ? <span className="text-sm text-positive">Saved.</span> : null}
         {state.error ? (
           <span className="text-sm text-danger">{state.error}</span>
         ) : null}

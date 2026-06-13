@@ -45,6 +45,11 @@ model User {
   reminderHour        Int     @default(21) // 0–23 in the user's timezone
   lastReminderDateKey String? // de-dupes reminder sends to once per local day
 
+  // The rebbe is an email recipient, not an app user — reports and אונס
+  // notifications are sent here. No rebbe account / login.
+  rebbeEmail String?
+  rebbeName  String?
+
   // Student ⇄ Rebbe pairing.
   rebbeId  String?
   rebbe    User?   @relation("StudentRebbe", fields: [rebbeId], references: [id])
@@ -180,6 +185,7 @@ model ItemCheck {
   itemLabel  String   // snapshot of the label at creation time
   order      Int      @default(0)
   checked    Boolean  @default(false)
+  ones       Boolean  @default(false) // excused (אונס) — doesn't count against the score
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

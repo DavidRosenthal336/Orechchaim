@@ -9,9 +9,16 @@ const schema = z.object({
   name: z.string().trim().max(80).optional(),
   timezone: z.string().trim().min(1),
   inIsrael: z.boolean(),
-  reminderOptIn: z.boolean(),
-  reminderHour: z.coerce.number().int().min(0).max(23),
   beinHazmanimMode: z.boolean(),
+  rebbeName: z.string().trim().max(80).optional(),
+  rebbeEmail: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .refine((v) => !v || z.string().email().safeParse(v).success, {
+      message: "Enter a valid rebbe email (or leave it blank).",
+    }),
 });
 
 export type SettingsState = { ok?: boolean; error?: string };
@@ -26,9 +33,9 @@ export async function updateSettings(
     name: formData.get("name") ?? undefined,
     timezone: formData.get("timezone"),
     inIsrael: formData.get("inIsrael") === "on",
-    reminderOptIn: formData.get("reminderOptIn") === "on",
-    reminderHour: formData.get("reminderHour"),
     beinHazmanimMode: formData.get("beinHazmanimMode") === "on",
+    rebbeName: formData.get("rebbeName") ?? undefined,
+    rebbeEmail: formData.get("rebbeEmail") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -42,9 +49,9 @@ export async function updateSettings(
       name: data.name?.length ? data.name : null,
       timezone: data.timezone,
       inIsrael: data.inIsrael,
-      reminderOptIn: data.reminderOptIn,
-      reminderHour: data.reminderHour,
       beinHazmanimMode: data.beinHazmanimMode,
+      rebbeName: data.rebbeName?.length ? data.rebbeName : null,
+      rebbeEmail: data.rebbeEmail?.length ? data.rebbeEmail.toLowerCase() : null,
     },
   });
 

@@ -18,6 +18,5 @@ export async function GET(req: NextRequest) {
   const user = await findOrCreateUser(email);
   await createSession(user.id, user.role as Role);
 
-  const destination = user.role === "REBBE" ? "/rebbe" : "/today";
-  return NextResponse.redirect(new URL(destination, req.url));
+  return NextResponse.redirect(new URL("/today", req.url));
 }
