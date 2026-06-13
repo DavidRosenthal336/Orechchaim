@@ -1,4 +1,4 @@
-// Orechchaim service worker — installability + a graceful offline fallback.
+// Orech Chaim service worker — installability + a graceful offline fallback.
 // Conservative by design: it never caches authenticated page HTML (which would
 // risk showing stale checklist data), only static assets and an offline page.
 

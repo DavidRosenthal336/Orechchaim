@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  Orechchaim design system — "Warm & encouraging".
+  Orech Chaim design system — "Warm & encouraging".
   Soft off-blue canvas, deep slate text, one calm blue accent, rounded cards.
   Light is the default. Dark applies automatically with the OS unless the user
   forces a mode (.theme-light / .theme-dark on <html>, set by ThemeToggle).

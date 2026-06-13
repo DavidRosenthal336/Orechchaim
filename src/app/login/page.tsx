@@ -20,7 +20,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center justify-between py-5">
-        <Link href="/" aria-label="Orechchaim home">
+        <Link href="/" aria-label="Orech Chaim home">
           <Logo />
         </Link>
         <ThemeToggle />

@@ -2,7 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY;
-const from = process.env.EMAIL_FROM ?? "Orechchaim <onboarding@resend.dev>";
+const from = process.env.EMAIL_FROM ?? "Orech Chaim <onboarding@resend.dev>";
 
 const resend = apiKey ? new Resend(apiKey) : null;
 
@@ -52,7 +52,7 @@ export async function sendWeeklyReport(
   to: string,
   data: WeeklyReportEmail,
 ): Promise<void> {
-  const subject = `Your Orechchaim report — ${data.weekRange}`;
+  const subject = `Your Orech Chaim report — ${data.weekRange}`;
   const summary = `${data.daysGood} good · ${data.daysShort} short (of ${data.daysTracked} days filled in)`;
   const text = [
     `Your week — ${data.weekRange}. Forward this to your rebbe.`,
@@ -84,9 +84,9 @@ export async function sendWeeklyReport(
 }
 
 export async function sendMagicLink(to: string, url: string): Promise<void> {
-  const subject = "Your Orechchaim sign-in link";
+  const subject = "Your Orech Chaim sign-in link";
   const text = [
-    "Click the link below to sign in to Orechchaim:",
+    "Click the link below to sign in to Orech Chaim:",
     "",
     url,
     "",
@@ -96,7 +96,7 @@ export async function sendMagicLink(to: string, url: string): Promise<void> {
 
   const html = `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#243044">
-    <h1 style="font-size:20px;margin:0 0 16px">Sign in to Orechchaim</h1>
+    <h1 style="font-size:20px;margin:0 0 16px">Sign in to Orech Chaim</h1>
     <p style="margin:0 0 24px;line-height:1.5">Click the button below to sign in. This link expires in 15 minutes and can be used once.</p>
     <p style="margin:0 0 24px">
       <a href="${url}" style="display:inline-block;background:#3B6FB0;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600">Sign in</a>

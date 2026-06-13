@@ -1,6 +1,6 @@
 {
-  "name": "Orechchaim",
-  "short_name": "Orechchaim",
+  "name": "Orech Chaim",
+  "short_name": "Orech Chaim",
   "description": "A daily growth checklist, based on the Jewish calendar.",
   "start_url": "/today",
   "scope": "/",

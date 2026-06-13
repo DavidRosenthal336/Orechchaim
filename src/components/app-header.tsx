@@ -5,7 +5,7 @@ import { Logo } from "@/components/logo";
 export function AppHeader() {
   return (
     <header className="flex items-center justify-between py-5">
-      <Link href="/today" aria-label="Orechchaim home">
+      <Link href="/today" aria-label="Orech Chaim home">
         <Logo />
       </Link>
       <Link
