@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { db } from "@/lib/db";
 import { todayKey } from "@/lib/calendar";
 import { sendReminder } from "@/lib/email";
+import { getAppUrl } from "@/lib/appUrl";
 
 /// Sends a reminder to each opted-in student whose local time has reached
 /// their reminder hour and who hasn't filled in today yet. De-duped to once
@@ -10,7 +11,7 @@ import { sendReminder } from "@/lib/email";
 export async function sendDueReminders(
   now: Date = new Date(),
 ): Promise<{ sent: number }> {
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = getAppUrl();
   const students = await db.user.findMany({
     where: { role: "STUDENT", reminderOptIn: true },
   });

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createMagicToken, normalizeEmail } from "@/lib/auth";
 import { sendMagicLink } from "@/lib/email";
 import { deleteSession } from "@/lib/session";
+import { getAppUrl } from "@/lib/appUrl";
 
 const schema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
@@ -27,7 +28,7 @@ export async function requestMagicLink(
 
   const email = normalizeEmail(parsed.data.email);
   const token = await createMagicToken(email);
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = getAppUrl();
   const url = `${base}/api/auth/verify?token=${token}`;
 
   await sendMagicLink(email, url);

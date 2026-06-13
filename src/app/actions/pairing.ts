@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/dal";
 import { createMagicToken, normalizeEmail } from "@/lib/auth";
 import { sendRebbeInvite } from "@/lib/email";
+import { getAppUrl } from "@/lib/appUrl";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
@@ -42,7 +43,7 @@ export async function inviteRebbe(
 
   // Email them a sign-in link.
   const token = await createMagicToken(email);
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = getAppUrl();
   const url = `${base}/api/auth/verify?token=${token}`;
   await sendRebbeInvite(email, student.name ?? "Your talmid", url);
 

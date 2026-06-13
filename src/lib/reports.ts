@@ -5,6 +5,7 @@ import { todayKey } from "@/lib/calendar";
 import { weekStartKey, weekEndKey, weekDayKeys, shiftWeeks, formatWeekRange } from "@/lib/week";
 import { getWeekBoard } from "@/lib/rebbe";
 import { sendWeeklyReport, type WeeklyReportEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/appUrl";
 
 const LINE_STATUS: Record<string, string | null> = {
   GOOD: "Good day",
@@ -55,7 +56,7 @@ async function buildReportData(
 export async function generateAndSendWeeklyReports(
   now: Date = new Date(),
 ): Promise<{ sent: number; skipped: number }> {
-  const base = process.env.APP_URL ?? "http://localhost:3000";
+  const base = getAppUrl();
   const students = await db.user.findMany({
     where: { role: "STUDENT", rebbeId: { not: null } },
   });
