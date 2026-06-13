@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -156,4 +157,77 @@ export async function setDayOverride(formData: FormData): Promise<void> {
     });
   });
   revalidateDay(entry.dateKey);
+}
+
+/// Turns a day into a one-off SPECIAL event: a named event with its own
+/// checklist that is NOT saved as a reusable template — it lives only on that
+/// day and shows in history/reports under the event name.
+export async function createSpecialEvent(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const dateKey = String(formData.get("dateKey"));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+  if (!isWindowOpen(user, dateKey)) return;
+
+  const name = z
+    .string()
+    .trim()
+    .min(1, "Name the event.")
+    .max(120)
+    .safeParse(formData.get("eventName"));
+  if (!name.success) return;
+
+  const target = z.coerce.number().int().min(0).max(100).safeParse(formData.get("target"));
+  const targetCount = target.success ? target.data : 0;
+
+  const labels = formData
+    .getAll("items")
+    .map((v) => String(v).trim())
+    .filter((v) => v.length > 0)
+    .slice(0, 50);
+
+  const resolution = resolveDayType(dateKey, resolveOptsFor(settings(user)));
+  const checks = {
+    create: labels.map((label, i) => ({ itemLabel: label, order: i })),
+  };
+
+  const existing = await db.dayEntry.findUnique({
+    where: { userId_dateKey: { userId: user.id, dateKey } },
+  });
+
+  if (existing) {
+    await db.$transaction(async (tx) => {
+      await tx.itemCheck.deleteMany({ where: { dayEntryId: existing.id } });
+      await tx.dayEntry.update({
+        where: { id: existing.id },
+        data: {
+          dayType: "SPECIAL",
+          overriddenDayType: "SPECIAL",
+          eventName: name.data,
+          templateId: null,
+          targetCount,
+          completedCount: 0,
+          met: false,
+          onesRequested: false,
+          status: "OPEN",
+          submittedAt: null,
+          checks,
+        },
+      });
+    });
+  } else {
+    await db.dayEntry.create({
+      data: {
+        userId: user.id,
+        dateKey,
+        hebrewDate: resolution.hebrewDateEn,
+        dayType: "SPECIAL",
+        overriddenDayType: "SPECIAL",
+        eventName: name.data,
+        targetCount,
+        checks,
+      },
+    });
+  }
+
+  revalidateDay(dateKey);
 }

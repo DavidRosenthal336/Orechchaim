@@ -24,6 +24,7 @@ export type BoardDay = {
   dateKey: string;
   dayType: DayType;
   label: string;
+  eventName: string | null; // set for one-off SPECIAL event days
   status: DayBoardStatus;
   completed: number;
   target: number;
@@ -57,7 +58,8 @@ export async function getWeekBoard(
     const dayType = resolution.dayType;
     const window = computeDayWindow(dateKey, resolution.isAssurMelacha, student, now);
     const entry = byKey.get(dateKey);
-    const label = resolution.holidays[0] ?? DAY_TYPE_LABELS[dayType];
+    const label =
+      entry?.eventName ?? resolution.holidays[0] ?? DAY_TYPE_LABELS[dayType];
 
     let status: DayBoardStatus;
     if (entry) {
@@ -80,6 +82,7 @@ export async function getWeekBoard(
       dateKey,
       dayType,
       label,
+      eventName: entry?.eventName ?? null,
       status,
       completed: entry?.completedCount ?? 0,
       target: entry?.targetCount ?? 0,

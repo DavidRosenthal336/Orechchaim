@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ListChecks, Settings, ChevronRight, Moon, CalendarDays } from "lucide-react";
+import { ListChecks, ChevronRight, Moon, CalendarDays } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { todayKey, formatCivilDate } from "@/lib/calendar";
 import { getCatchUpDays } from "@/lib/day";
@@ -62,15 +62,6 @@ export default async function TodayPage() {
               <span className="flex items-center gap-3">
                 <ListChecks className="h-5 w-5 text-accent" />
                 <span className="font-medium">My checklists</span>
-              </span>
-              <ChevronRight className="h-5 w-5 text-muted" />
-            </Card>
-          </Link>
-          <Link href="/settings">
-            <Card className="flex items-center justify-between gap-3 transition-colors hover:bg-surface-2">
-              <span className="flex items-center gap-3">
-                <Settings className="h-5 w-5 text-accent" />
-                <span className="font-medium">Settings</span>
               </span>
               <ChevronRight className="h-5 w-5 text-muted" />
             </Card>

@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LogOut } from "lucide-react";
 import { requireUser } from "@/lib/dal";
+import { signOut } from "@/app/actions/auth";
 import { SettingsForm } from "./settings-form";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Card } from "@/components/ui";
 
 function timezones(): string[] {
   const supported = (
@@ -26,7 +29,7 @@ export default async function SettingsPage() {
         <h1 className="text-xl font-bold tracking-tight">Settings</h1>
       </header>
 
-      <main className="flex-1 pb-10">
+      <main className="flex-1 space-y-5 pb-10">
         <SettingsForm
           timezones={timezones()}
           initial={{
@@ -38,6 +41,28 @@ export default async function SettingsPage() {
             rebbeEmail: user.rebbeEmail ?? "",
           }}
         />
+
+        <Card className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Appearance</p>
+            <p className="mt-0.5 text-xs text-muted">
+              Switch between light and dark.
+            </p>
+          </div>
+          <ThemeToggle />
+        </Card>
+
+        <div className="pt-2">
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-danger"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </form>
+        </div>
       </main>
     </div>
   );

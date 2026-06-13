@@ -6,6 +6,7 @@ import { formatCivilDate } from "@/lib/calendar";
 import { DAY_TYPE_LABELS, type DayType } from "@/lib/constants";
 import { submitDay, reopenDay, setDayOverride } from "@/app/actions/day";
 import { DayChecklist } from "@/components/day-checklist";
+import { SpecialEventForm } from "@/components/special-event-form";
 import { Card, Button, ButtonLink } from "@/components/ui";
 import { isHebrew } from "@/lib/utils";
 
@@ -45,7 +46,7 @@ export async function DayView({
     <div className="mb-6">
       <p className="text-sm text-muted">{formatCivilDate(dateKey)}</p>
       <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
-        {DAY_TYPE_LABELS[effectiveDayType]}
+        {entry?.eventName ?? DAY_TYPE_LABELS[effectiveDayType]}
       </h1>
       <p className="mt-1 text-sm text-muted">
         <span className="heb">{resolution.hebrewDateHe}</span>
@@ -69,6 +70,11 @@ export async function DayView({
             Set up a checklist
           </ButtonLink>
         </Card>
+        {window.state === "OPEN" ? (
+          <Card className="mt-3">
+            <SpecialEventForm dateKey={dateKey} />
+          </Card>
+        ) : null}
       </div>
     );
   }
@@ -176,34 +182,36 @@ export async function DayView({
           </Card>
         ) : null}
 
-        {editable && assignments.length > 0 ? (
+        {editable ? (
           <details className="rounded-2xl border border-border bg-surface px-5">
             <summary className="cursor-pointer list-none py-3 text-xs font-medium text-muted">
               Wrong checklist for today?
             </summary>
-            <form
-              action={setDayOverride}
-              className="space-y-2 border-t border-border py-4"
-            >
-              <input type="hidden" name="dayEntryId" value={entry.id} />
-              <select
-                name="dayType"
-                defaultValue={effectiveDayType}
-                className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
-              >
-                {assignments.map((a) => (
-                  <option key={a.id} value={a.dayType}>
-                    {DAY_TYPE_LABELS[a.dayType as DayType]} — {a.template.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted">
-                Replaces today&apos;s checklist and resets your checks.
-              </p>
-              <Button type="submit" variant="secondary" size="sm">
-                Use this checklist
-              </Button>
-            </form>
+            <div className="space-y-4 border-t border-border py-4">
+              {assignments.length > 0 ? (
+                <form action={setDayOverride} className="space-y-2">
+                  <input type="hidden" name="dayEntryId" value={entry.id} />
+                  <select
+                    name="dayType"
+                    defaultValue={effectiveDayType}
+                    className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+                  >
+                    {assignments.map((a) => (
+                      <option key={a.id} value={a.dayType}>
+                        {DAY_TYPE_LABELS[a.dayType as DayType]} — {a.template.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted">
+                    Replaces today&apos;s checklist and resets your checks.
+                  </p>
+                  <Button type="submit" variant="secondary" size="sm">
+                    Use this checklist
+                  </Button>
+                </form>
+              ) : null}
+              <SpecialEventForm dateKey={dateKey} />
+            </div>
           </details>
         ) : null}
 

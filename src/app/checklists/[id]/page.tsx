@@ -1,22 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, Trash2, Plus } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { getTemplateForUser, getTemplatesForUser } from "@/lib/queries";
 import {
   updateTemplateMeta,
   archiveTemplate,
   addItem,
-  updateItem,
-  deleteItem,
   setAssignments,
 } from "@/app/actions/templates";
 import { Card, Button } from "@/components/ui";
+import { SortableItems } from "@/components/sortable-items";
 import { ASSIGNABLE_DAY_TYPES, DAY_TYPE_LABELS } from "@/lib/constants";
-
-function isHebrew(text: string): boolean {
-  return /[֐-׿]/.test(text);
-}
 
 export default async function TemplateEditorPage({
   params,
@@ -98,43 +93,17 @@ export default async function TemplateEditorPage({
 
         {/* Items */}
         <Card className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted">Items</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-muted">Items</h2>
+            {template.items.length > 1 ? (
+              <span className="text-xs text-muted">Drag ⋮⋮ to reorder</span>
+            ) : null}
+          </div>
 
-          {template.items.length === 0 ? (
-            <p className="text-sm text-muted">No items yet. Add some below.</p>
-          ) : (
-            <ul className="space-y-2">
-              {template.items.map((item) => (
-                <li key={item.id}>
-                  <form action={updateItem} className="flex items-center gap-2">
-                    <input type="hidden" name="templateId" value={template.id} />
-                    <input type="hidden" name="itemId" value={item.id} />
-                    <input
-                      name="label"
-                      defaultValue={item.label}
-                      maxLength={200}
-                      dir={isHebrew(item.label) ? "rtl" : "ltr"}
-                      className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
-                    />
-                    <button
-                      type="submit"
-                      className="shrink-0 rounded-lg px-2 text-xs font-medium text-accent hover:bg-accent-soft"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="submit"
-                      formAction={deleteItem}
-                      aria-label="Delete item"
-                      className="shrink-0 rounded-lg p-2 text-muted hover:bg-danger-soft hover:text-danger"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
+          <SortableItems
+            templateId={template.id}
+            items={template.items.map((i) => ({ id: i.id, label: i.label }))}
+          />
 
           <form
             action={addItem}

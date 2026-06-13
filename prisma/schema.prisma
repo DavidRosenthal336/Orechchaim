@@ -145,6 +145,7 @@ model DayEntry {
 
   dayType           String  // resolved day-type for this date
   overriddenDayType String? // set when the student manually changes today's list
+  eventName         String? // name/reason for a one-off SPECIAL event day
   templateId        String?
   template          ChecklistTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 

@@ -22,15 +22,16 @@ async function buildReportData(student: ReportStudent, weekStart: string, now: D
 
   for (const d of board) {
     const dow = DateTime.fromISO(d.dateKey).toFormat("ccc LLL d");
+    const event = d.eventName ? `${d.eventName}: ` : "";
     const excused = d.onesCount > 0 ? ` · ${d.onesCount} excused (אונס)` : "";
     if (d.status === "GOOD") {
       daysGood++;
-      lines.push(`${dow} — Good (${d.completed}/${d.target})${excused}`);
+      lines.push(`${dow} — ${event}Good (${d.completed}/${d.target})${excused}`);
     } else if (d.status === "SHORT") {
       daysShort++;
-      lines.push(`${dow} — Short (${d.completed}/${d.target})${excused}`);
+      lines.push(`${dow} — ${event}Short (${d.completed}/${d.target})${excused}`);
     } else if (d.status === "MISSED" || d.status === "OPEN") {
-      lines.push(`${dow} — Not filled in`);
+      lines.push(`${dow} — ${event}Not filled in`);
     }
   }
 

@@ -97,6 +97,23 @@ export async function updateItem(formData: FormData): Promise<void> {
   revalidatePath(`/checklists/${templateId}`);
 }
 
+/// Persists a new item order (from drag-and-drop).
+export async function reorderItems(
+  templateId: string,
+  orderedIds: string[],
+): Promise<void> {
+  await assertOwner(templateId);
+  await db.$transaction(
+    orderedIds.map((id, index) =>
+      db.checklistItem.updateMany({
+        where: { id, templateId },
+        data: { order: index },
+      }),
+    ),
+  );
+  revalidatePath(`/checklists/${templateId}`);
+}
+
 export async function deleteItem(formData: FormData): Promise<void> {
   const templateId = String(formData.get("templateId"));
   await assertOwner(templateId);
