@@ -70,16 +70,15 @@ DATABASE_URL="postgresql://…neon…" npx prisma db push
 - `/api/cron/weekly-report` — daily at 11:00 UTC. Sends each rebbe the report for
   the most recently completed week (Sunday → Shabbos). Idempotent: one email per
   week.
-- `/api/cron/reminder` — hourly. Emails opted-in students at their chosen hour if
-  they haven't filled in today.
+- `/api/cron/reminder` — daily at 01:00 UTC (≈ 9pm US-Eastern). Emails opted-in
+  students who haven't filled in today.
 
-**Vercel Hobby (free) plan note:** Hobby crons run at most once per day, so the
-**weekly report works out of the box**, but the **hourly reminder will only fire
-once a day**. Two options for true hourly reminders:
-
-- Upgrade to Vercel Pro, **or**
-- Use a free external scheduler (e.g. <https://cron-job.org> or a GitHub Action)
-  to hit `https://YOUR_APP/api/cron/reminder?key=YOUR_CRON_SECRET` every hour.
+**Vercel Hobby (free) plan note:** Hobby crons run at most once per day, which is
+why the reminder is scheduled daily. To honor each student's *chosen* reminder
+hour precisely, either upgrade to Vercel Pro and change the schedule to hourly
+(`0 * * * *`), or use a free external scheduler (e.g. <https://cron-job.org> or a
+GitHub Action) to hit `https://YOUR_APP/api/cron/reminder?key=YOUR_CRON_SECRET`
+hourly — then have it call with per-hour matching enabled.
 
 Both endpoints require auth: Vercel Cron sends `Authorization: Bearer $CRON_SECRET`
 automatically; external callers pass `?key=$CRON_SECRET`.
