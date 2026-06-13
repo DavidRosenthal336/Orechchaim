@@ -2,12 +2,13 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export function AppHeader({ home = "/today" }: { home?: string }) {
   return (
     <header className="flex items-center justify-between py-5">
-      <Link href={home} className="text-lg font-bold tracking-tight">
-        Orechchaim
+      <Link href={home} aria-label="Orechchaim home">
+        <Logo />
       </Link>
       <div className="flex items-center gap-2">
         <ThemeToggle />

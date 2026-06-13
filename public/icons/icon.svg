@@ -1,4 +1,17 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="112" fill="#3B6FB0"/>
-  <path d="M162 264 l58 58 l132 -140" fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="512" height="512" rx="116" fill="#3B6FB0"/>
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ladder rails, converging slightly toward the top (ascending) -->
+    <path d="M168 396 L200 168" />
+    <path d="M344 396 L312 168" />
+    <!-- winding switchback path climbing up between the rails -->
+    <path d="M256 392
+             C 298 376, 298 356, 256 342
+             C 214 328, 214 308, 256 294
+             C 294 281, 294 263, 256 250
+             C 222 238, 222 222, 256 210" />
+    <!-- upward arrow at the top: the path leads beyond the ladder -->
+    <path d="M256 214 L256 150" />
+    <path d="M230 176 L256 148 L282 176" />
+  </g>
 </svg>

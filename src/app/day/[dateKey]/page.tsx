@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { DayView } from "@/components/day-view";
+import { Logo } from "@/components/logo";
 
 export default async function DayPage({
   params,
@@ -25,7 +26,7 @@ export default async function DayPage({
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <span className="text-lg font-bold tracking-tight">Orechchaim</span>
+        <Logo />
       </header>
       <main className="flex-1 py-2 pb-10">
         <DayView user={user} dateKey={dateKey} />

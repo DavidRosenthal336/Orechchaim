@@ -1,11 +1,12 @@
 import { ButtonLink } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export default function LandingPage() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center justify-between py-5">
-        <span className="text-lg font-bold tracking-tight">Orechchaim</span>
+        <Logo />
         <ThemeToggle />
       </header>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 import { LoginForm } from "./login-form";
 
 const ERRORS: Record<string, string> = {
@@ -19,8 +20,8 @@ export default async function LoginPage({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center justify-between py-5">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          Orechchaim
+        <Link href="/" aria-label="Orechchaim home">
+          <Logo />
         </Link>
         <ThemeToggle />
       </header>
