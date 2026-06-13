@@ -37,8 +37,6 @@ export default async function SettingsPage() {
             timezone: user.timezone,
             inIsrael: user.inIsrael,
             beinHazmanimMode: user.beinHazmanimMode,
-            rebbeName: user.rebbeName ?? "",
-            rebbeEmail: user.rebbeEmail ?? "",
           }}
         />
 

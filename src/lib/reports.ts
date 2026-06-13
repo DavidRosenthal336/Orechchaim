@@ -9,8 +9,6 @@ import { sendWeeklyReport, type WeeklyReportEmail } from "@/lib/email";
 type ReportStudent = Parameters<typeof getWeekBoard>[0] & {
   name: string | null;
   email: string;
-  rebbeEmail: string | null;
-  rebbeName: string | null;
 };
 
 async function buildReportData(student: ReportStudent, weekStart: string, now: Date) {
@@ -39,24 +37,17 @@ async function buildReportData(student: ReportStudent, weekStart: string, now: D
 }
 
 /// Generates + emails any not-yet-sent weekly reports for the most recently
-/// completed week, to each student's rebbe email. Idempotent (WeeklyReport is
-/// unique per student + week).
+/// completed week, to each student's own email (they forward it to their
+/// rebbe). Idempotent (WeeklyReport is unique per student + week).
 export async function generateAndSendWeeklyReports(
   now: Date = new Date(),
 ): Promise<{ sent: number; skipped: number }> {
-  const students = await db.user.findMany({
-    where: { rebbeEmail: { not: null } },
-  });
+  const students = await db.user.findMany();
 
   let sent = 0;
   let skipped = 0;
 
   for (const student of students) {
-    if (!student.rebbeEmail) {
-      skipped++;
-      continue;
-    }
-
     const hasChecklist = await db.checklistTemplate.count({
       where: { userId: student.id, isArchived: false },
     });
@@ -108,7 +99,7 @@ export async function generateAndSendWeeklyReports(
       daysTracked: data.daysTracked,
       lines: data.lines,
     };
-    await sendWeeklyReport(student.rebbeEmail, email);
+    await sendWeeklyReport(student.email, email);
     sent++;
   }
 

@@ -52,10 +52,10 @@ export async function sendWeeklyReport(
   to: string,
   data: WeeklyReportEmail,
 ): Promise<void> {
-  const subject = `${data.studentName} — weekly report (${data.weekRange})`;
+  const subject = `Your Orechchaim report — ${data.weekRange}`;
   const summary = `${data.daysGood} good · ${data.daysShort} short (of ${data.daysTracked} days filled in)`;
   const text = [
-    `Weekly report for ${data.studentName} — ${data.weekRange}`,
+    `Your week — ${data.weekRange}. Forward this to your rebbe.`,
     "",
     summary,
     "",
@@ -71,8 +71,8 @@ export async function sendWeeklyReport(
 
   const html = `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#243044">
-    <h1 style="font-size:20px;margin:0 0 4px">${data.studentName}</h1>
-    <p style="margin:0 0 16px;color:#5b6b82;font-size:14px">${data.weekRange}</p>
+    <h1 style="font-size:20px;margin:0 0 4px">Your week</h1>
+    <p style="margin:0 0 16px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
     <div style="background:#e7eefb;border-radius:12px;padding:16px;margin:0 0 16px">
       <p style="margin:0;font-size:18px;font-weight:700">${data.daysGood} good · ${data.daysShort} short</p>
       <p style="margin:2px 0 0;color:#5b6b82;font-size:13px">of ${data.daysTracked} days filled in</p>

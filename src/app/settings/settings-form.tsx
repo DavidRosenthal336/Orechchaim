@@ -12,8 +12,6 @@ type Props = {
     timezone: string;
     inIsrael: boolean;
     beinHazmanimMode: boolean;
-    rebbeName: string;
-    rebbeEmail: string;
   };
 };
 
@@ -67,39 +65,12 @@ export function SettingsForm({ timezones, initial }: Props) {
         />
       </Card>
 
-      <Card className="space-y-4">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">Your rebbe</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Where your weekly report is emailed. Your rebbe doesn&apos;t need an
-            account — he just receives the report.
-          </p>
-        </div>
-        <div>
-          <label htmlFor="rebbeName" className="mb-1.5 block text-sm font-medium">
-            Rebbe&apos;s name
-          </label>
-          <input
-            id="rebbeName"
-            name="rebbeName"
-            defaultValue={initial.rebbeName}
-            placeholder="Optional"
-            className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
-          />
-        </div>
-        <div>
-          <label htmlFor="rebbeEmail" className="mb-1.5 block text-sm font-medium">
-            Rebbe&apos;s email
-          </label>
-          <input
-            id="rebbeEmail"
-            name="rebbeEmail"
-            type="email"
-            defaultValue={initial.rebbeEmail}
-            placeholder="rebbe@example.com"
-            className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
-          />
-        </div>
+      <Card>
+        <h2 className="text-sm font-semibold text-foreground">Weekly report</h2>
+        <p className="mt-1 text-xs leading-relaxed text-muted">
+          Each week you&apos;ll get an email summarizing your week — forward it
+          to your rebbe.
+        </p>
       </Card>
 
       {/* Advanced — deliberately collapsed and low-key. */}

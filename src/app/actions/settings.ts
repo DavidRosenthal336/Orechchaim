@@ -10,15 +10,6 @@ const schema = z.object({
   timezone: z.string().trim().min(1),
   inIsrael: z.boolean(),
   beinHazmanimMode: z.boolean(),
-  rebbeName: z.string().trim().max(80).optional(),
-  rebbeEmail: z
-    .string()
-    .trim()
-    .max(200)
-    .optional()
-    .refine((v) => !v || z.string().email().safeParse(v).success, {
-      message: "Enter a valid rebbe email (or leave it blank).",
-    }),
 });
 
 export type SettingsState = { ok?: boolean; error?: string };
@@ -34,8 +25,6 @@ export async function updateSettings(
     timezone: formData.get("timezone"),
     inIsrael: formData.get("inIsrael") === "on",
     beinHazmanimMode: formData.get("beinHazmanimMode") === "on",
-    rebbeName: formData.get("rebbeName") ?? undefined,
-    rebbeEmail: formData.get("rebbeEmail") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -50,8 +39,6 @@ export async function updateSettings(
       timezone: data.timezone,
       inIsrael: data.inIsrael,
       beinHazmanimMode: data.beinHazmanimMode,
-      rebbeName: data.rebbeName?.length ? data.rebbeName : null,
-      rebbeEmail: data.rebbeEmail?.length ? data.rebbeEmail.toLowerCase() : null,
     },
   });
 
