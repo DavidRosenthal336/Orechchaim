@@ -1,10 +1,30 @@
 import "server-only";
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? "Orech Chaim <onboarding@resend.dev>";
 
-const resend = apiKey ? new Resend(apiKey) : null;
+// Sending backends, in order of preference:
+// 1. Gmail / SMTP  — set SMTP_USER + SMTP_PASS (a Gmail "app password").
+// 2. Resend        — set RESEND_API_KEY.
+// 3. Dev console    — neither set: emails are logged, so dev needs no account.
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+const smtpHost = process.env.SMTP_HOST ?? "smtp.gmail.com";
+const smtpPort = Number(process.env.SMTP_PORT ?? "465");
+
+const transporter =
+  smtpUser && smtpPass
+    ? nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: { user: smtpUser, pass: smtpPass },
+      })
+    : null;
+
+const resendKey = process.env.RESEND_API_KEY;
+const resend = !transporter && resendKey ? new Resend(resendKey) : null;
 
 type SendArgs = {
   to: string;
@@ -13,30 +33,34 @@ type SendArgs = {
   text: string;
 };
 
-/// Sends an email via Resend. In dev (no RESEND_API_KEY) it logs to the
-/// server console instead, so the whole app is usable without an email
-/// account.
+/// Sends an email via Gmail/SMTP if configured, else Resend, else logs to the
+/// server console (so dev works without any email account).
 export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<void> {
-  if (!resend) {
-    console.log(
-      [
-        "",
-        "📧 ─────────── EMAIL (dev console) ───────────",
-        `To:      ${to}`,
-        `Subject: ${subject}`,
-        "",
-        text,
-        "─────────────────────────────────────────────",
-        "",
-      ].join("\n"),
-    );
+  if (transporter) {
+    await transporter.sendMail({ from, to, subject, html, text });
     return;
   }
 
-  const { error } = await resend.emails.send({ from, to, subject, html, text });
-  if (error) {
-    throw new Error(`Failed to send email: ${error.message}`);
+  if (resend) {
+    const { error } = await resend.emails.send({ from, to, subject, html, text });
+    if (error) {
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
+    return;
   }
+
+  console.log(
+    [
+      "",
+      "📧 ─────────── EMAIL (dev console) ───────────",
+      `To:      ${to}`,
+      `Subject: ${subject}`,
+      "",
+      text,
+      "─────────────────────────────────────────────",
+      "",
+    ].join("\n"),
+  );
 }
 
 export type WeeklyReportEmail = {
