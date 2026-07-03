@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2 } from "lucide-react";
+import { Check, GripVertical, Trash2 } from "lucide-react";
 import { updateItem, deleteItem, reorderItems } from "@/app/actions/templates";
 import { cn } from "@/lib/utils";
 
@@ -32,22 +32,64 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
   };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [value, setValue] = useState(item.label);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [isPending, startTransition] = useTransition();
+
   function autoGrow(el: HTMLTextAreaElement) {
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   }
-  // Size to fit the initial value (and whenever it changes from the server).
+
+  // Re-sync from the server (e.g. after a saved reorder) and size to fit.
+  useEffect(() => {
+    setValue(item.label);
+  }, [item.label]);
   useEffect(() => {
     if (textareaRef.current) autoGrow(textareaRef.current);
-  }, [item.label]);
+  }, [value]);
+
+  // Clear the "Saved" confirmation after a moment.
+  useEffect(() => {
+    if (status !== "saved") return;
+    const t = setTimeout(() => setStatus("idle"), 2500);
+    return () => clearTimeout(t);
+  }, [status]);
+
+  const trimmed = value.trim();
+  const dirty = trimmed !== item.label.trim();
+  const canSave = dirty && trimmed.length > 0 && !isPending;
+
+  function save() {
+    if (!canSave) return;
+    const fd = new FormData();
+    fd.set("templateId", templateId);
+    fd.set("itemId", item.id);
+    fd.set("label", value);
+    setStatus("saving");
+    startTransition(async () => {
+      await updateItem(fd);
+      setStatus("saved");
+    });
+  }
+
+  function remove() {
+    const fd = new FormData();
+    fd.set("templateId", templateId);
+    fd.set("itemId", item.id);
+    startTransition(async () => {
+      await deleteItem(fd);
+    });
+  }
 
   return (
     <li
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-1.5 rounded-lg border border-border bg-surface px-1.5 py-1.5",
+        "flex items-start gap-1.5 rounded-lg border border-border bg-surface px-1.5 py-1.5",
         isDragging && "z-10 opacity-80 shadow",
+        dirty && "border-accent/60",
       )}
     >
       <button
@@ -59,34 +101,56 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <form action={updateItem} className="flex flex-1 items-start gap-2">
-        <input type="hidden" name="templateId" value={templateId} />
-        <input type="hidden" name="itemId" value={item.id} />
+
+      <div className="flex flex-1 items-start gap-2">
         <textarea
           ref={textareaRef}
-          name="label"
-          defaultValue={item.label}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (status !== "idle") setStatus("idle");
+          }}
+          onInput={(e) => autoGrow(e.currentTarget)}
           maxLength={200}
           rows={1}
-          dir="auto"
-          onInput={(e) => autoGrow(e.currentTarget)}
-          className="min-h-[2.25rem] w-full resize-none overflow-hidden break-words rounded-lg border border-border bg-surface px-2.5 py-2 text-sm leading-snug"
+          dir="ltr"
+          className="min-h-[2.25rem] w-full resize-none overflow-hidden break-words rounded-lg border border-border bg-surface px-2.5 py-2 text-left text-sm leading-snug"
         />
+
         <button
-          type="submit"
-          className="mt-1 shrink-0 rounded-lg px-2 text-xs font-medium text-accent hover:bg-accent-soft"
+          type="button"
+          onClick={save}
+          disabled={!canSave && status !== "saved"}
+          className={cn(
+            "mt-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
+            status === "saved"
+              ? "text-positive"
+              : canSave
+                ? "bg-accent-soft text-accent"
+                : "text-muted",
+          )}
         >
-          Save
+          {status === "saved" ? (
+            <>
+              <Check className="h-3.5 w-3.5" strokeWidth={3} /> Saved
+            </>
+          ) : isPending ? (
+            "Saving…"
+          ) : (
+            "Save"
+          )}
         </button>
+
         <button
-          type="submit"
-          formAction={deleteItem}
+          type="button"
+          onClick={remove}
+          disabled={isPending}
           aria-label="Delete item"
           className="mt-1 shrink-0 rounded-lg p-1.5 text-muted hover:bg-danger-soft hover:text-danger"
         >
           <Trash2 className="h-4 w-4" />
         </button>
-      </form>
+      </div>
     </li>
   );
 }

@@ -102,11 +102,11 @@ export function DayChecklist({
               </span>
               <span
                 className={cn(
-                  "min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-snug",
+                  "min-w-0 flex-1 whitespace-pre-wrap break-words text-left text-[15px] leading-snug",
                   item.checked && "text-muted line-through",
                   item.ones && "text-muted line-through decoration-warning",
                 )}
-                dir="auto"
+                dir="ltr"
               >
                 {item.label}
               </span>
