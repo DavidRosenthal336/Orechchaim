@@ -76,20 +76,6 @@ export function SpecialEventForm({ dateKey }: { dateKey: string }) {
         </button>
       </div>
 
-      <div>
-        <label htmlFor="target" className="mb-1.5 block text-sm font-medium">
-          Daily target
-        </label>
-        <input
-          id="target"
-          name="target"
-          type="number"
-          min={0}
-          defaultValue={0}
-          className="h-11 w-24 rounded-xl border border-border bg-surface px-3 text-base"
-        />
-      </div>
-
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm">
           Start special day

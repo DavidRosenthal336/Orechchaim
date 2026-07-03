@@ -3,10 +3,9 @@ import type { BoardDay, DayBoardStatus } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 const STATUS: Record<DayBoardStatus, { label: string; cls: string }> = {
-  GOOD: { label: "Good", cls: "bg-positive-soft text-positive" },
-  SHORT: { label: "Short", cls: "bg-danger-soft text-danger" },
+  FILLED: { label: "Filled in", cls: "bg-positive-soft text-positive" },
   OPEN: { label: "Open", cls: "bg-accent-soft text-accent" },
-  MISSED: { label: "Missed", cls: "bg-surface-2 text-muted" },
+  MISSED: { label: "Not filled in", cls: "bg-surface-2 text-muted" },
   UPCOMING: { label: "—", cls: "text-muted" },
   ASSUR_WAIT: { label: "—", cls: "text-muted" },
   NO_CHECKLIST: { label: "—", cls: "text-muted" },
@@ -18,7 +17,7 @@ export function WeekBoard({ days }: { days: BoardDay[] }) {
       {days.map((d) => {
         const s = STATUS[d.status];
         const dow = DateTime.fromISO(d.dateKey).toFormat("ccc");
-        const showCount = d.status === "GOOD" || d.status === "SHORT";
+        const showCount = d.status === "FILLED";
         return (
           <li
             key={d.dateKey}
@@ -37,9 +36,9 @@ export function WeekBoard({ days }: { days: BoardDay[] }) {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {showCount && d.target > 0 ? (
+              {showCount && d.total > 0 ? (
                 <span className="text-xs tabular-nums text-muted">
-                  {d.completed}/{d.target}
+                  {d.completed}/{d.total} done
                 </span>
               ) : null}
               <span

@@ -50,8 +50,9 @@ export default async function HistoryPage() {
                         {formatWeekRange(w.weekStart)}
                       </p>
                       <p className="text-xs text-muted">
-                        {w.daysGood} good · {w.daysShort} short
-                        {w.daysTracked === 0 ? " · nothing filled in" : ""}
+                        {w.daysTracked === 0
+                          ? "Nothing filled in"
+                          : `${w.daysTracked} ${w.daysTracked === 1 ? "day" : "days"} filled in`}
                       </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted" />

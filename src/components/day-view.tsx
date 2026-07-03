@@ -141,22 +141,15 @@ export async function DayView({
     <div>
       {header}
 
-      <DayChecklist
-        dayEntryId={entry.id}
-        target={entry.targetCount}
-        items={items}
-        editable={editable}
-      />
+      <DayChecklist dayEntryId={entry.id} items={items} editable={editable} />
 
       <div className="mt-6 space-y-4">
         {submitted ? (
           <Card className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-semibold">
-                {entry.met ? "Good day 🌱" : "Submitted"}
-              </p>
+              <p className="font-semibold">Recorded 🌱</p>
               <p className="text-xs text-muted">
-                {entry.completedCount} of {entry.targetCount} done
+                {entry.completedCount} of {entry.checks.length} done
                 {entry.onesRequested ? " · אונס excused" : ""}
               </p>
             </div>

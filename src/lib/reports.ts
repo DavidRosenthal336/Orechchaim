@@ -14,26 +14,22 @@ type ReportStudent = Parameters<typeof getWeekBoard>[0] & {
 async function buildReportData(student: ReportStudent, weekStart: string, now: Date) {
   const board = await getWeekBoard(student, weekStart, now);
 
-  let daysGood = 0;
-  let daysShort = 0;
+  let daysTracked = 0;
   const lines: string[] = [];
 
   for (const d of board) {
     const dow = DateTime.fromISO(d.dateKey).toFormat("ccc LLL d");
     const event = d.eventName ? `${d.eventName}: ` : "";
     const excused = d.onesCount > 0 ? ` · ${d.onesCount} excused (אונס)` : "";
-    if (d.status === "GOOD") {
-      daysGood++;
-      lines.push(`${dow} — ${event}Good (${d.completed}/${d.target})${excused}`);
-    } else if (d.status === "SHORT") {
-      daysShort++;
-      lines.push(`${dow} — ${event}Short (${d.completed}/${d.target})${excused}`);
+    if (d.status === "FILLED") {
+      daysTracked++;
+      lines.push(`${dow} — ${event}${d.completed} of ${d.total} done${excused}`);
     } else if (d.status === "MISSED" || d.status === "OPEN") {
       lines.push(`${dow} — ${event}Not filled in`);
     }
   }
 
-  return { daysGood, daysShort, daysTracked: daysGood + daysShort, lines };
+  return { daysTracked, lines };
 }
 
 /// Generates + emails any not-yet-sent weekly reports for the most recently
@@ -82,10 +78,6 @@ export async function generateAndSendWeeklyReports(
         weekStartKey: completedWeekStart,
         weekEndKey: weekEndKey(completedWeekStart),
         daysTracked: data.daysTracked,
-        daysMet: data.daysGood,
-        onesAccepted: 0,
-        onesDenied: data.daysShort,
-        onesPending: 0,
         payload: JSON.stringify(data),
         sentAt: new Date(),
       },
@@ -94,8 +86,6 @@ export async function generateAndSendWeeklyReports(
     const email: WeeklyReportEmail = {
       studentName: student.name ?? student.email,
       weekRange: formatWeekRange(completedWeekStart),
-      daysGood: data.daysGood,
-      daysShort: data.daysShort,
       daysTracked: data.daysTracked,
       lines: data.lines,
     };

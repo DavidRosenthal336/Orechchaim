@@ -35,24 +35,17 @@ export async function createTemplate(formData: FormData): Promise<void> {
 
 export async function updateTemplateMeta(formData: FormData): Promise<void> {
   const templateId = String(formData.get("templateId"));
-  const userId = await assertOwner(templateId);
+  await assertOwner(templateId);
 
   const name = nameSchema.safeParse(formData.get("name"));
-  const target = z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(100)
-    .safeParse(formData.get("targetCount"));
-  if (!name.success || !target.success) return;
+  if (!name.success) return;
 
   await db.checklistTemplate.update({
     where: { id: templateId },
-    data: { name: name.data, targetCount: target.data },
+    data: { name: name.data },
   });
   revalidatePath(`/checklists/${templateId}`);
   revalidatePath("/checklists");
-  void userId;
 }
 
 export async function archiveTemplate(formData: FormData): Promise<void> {
@@ -94,6 +87,38 @@ export async function updateItem(formData: FormData): Promise<void> {
     where: { id: itemId, templateId },
     data: { label: label.data },
   });
+  revalidatePath(`/checklists/${templateId}`);
+}
+
+/// Copies one or more existing item labels (from the user's other checklists)
+/// onto this template, skipping any it already has. Appended in order.
+export async function addExistingItems(formData: FormData): Promise<void> {
+  const templateId = String(formData.get("templateId"));
+  await assertOwner(templateId);
+
+  const labels = formData
+    .getAll("labels")
+    .map((v) => String(v).trim())
+    .filter((v) => v.length > 0 && v.length <= 200)
+    .slice(0, 200);
+  if (labels.length === 0) return;
+
+  const existing = await db.checklistItem.findMany({
+    where: { templateId, isArchived: false },
+    select: { label: true },
+  });
+  const have = new Set(existing.map((e) => e.label));
+  const toAdd = [...new Set(labels)].filter((l) => !have.has(l));
+  if (toAdd.length === 0) return;
+
+  let order = await db.checklistItem.count({
+    where: { templateId, isArchived: false },
+  });
+  await db.$transaction(
+    toAdd.map((label) =>
+      db.checklistItem.create({ data: { templateId, label, order: order++ } }),
+    ),
+  );
   revalidatePath(`/checklists/${templateId}`);
 }
 

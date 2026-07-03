@@ -43,8 +43,7 @@ export default async function ChecklistsPage() {
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{t.name}</p>
                     <p className="mt-0.5 text-xs text-muted">
-                      {t._count.items} item{t._count.items === 1 ? "" : "s"} ·
-                      target {t.targetCount}
+                      {t._count.items} item{t._count.items === 1 ? "" : "s"}
                     </p>
                     {t.assignments.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">

@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/templates";
 import { Card, Button } from "@/components/ui";
 import { SortableItems } from "@/components/sortable-items";
+import { AddExistingItems } from "@/components/add-existing-items";
 import { ASSIGNABLE_DAY_TYPES, DAY_TYPE_LABELS } from "@/lib/constants";
 
 export default async function TemplateEditorPage({
@@ -31,6 +32,19 @@ export default async function TemplateEditorPage({
     }
   }
 
+  // Distinct item labels that exist on the user's other checklists and aren't
+  // already on this one — offered as quick "add from other checklists" picks.
+  const currentLabels = new Set(template.items.map((i) => i.label));
+  const seen = new Set<string>();
+  const availableLabels: string[] = [];
+  for (const t of allTemplates) {
+    for (const it of t.items) {
+      if (currentLabels.has(it.label) || seen.has(it.label)) continue;
+      seen.add(it.label);
+      availableLabels.push(it.label);
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center gap-2 py-5">
@@ -47,7 +61,7 @@ export default async function TemplateEditorPage({
       </header>
 
       <main className="flex-1 space-y-5 pb-10">
-        {/* Name + daily target */}
+        {/* Name */}
         <Card>
           <form action={updateTemplateMeta} className="space-y-4">
             <input type="hidden" name="templateId" value={template.id} />
@@ -62,28 +76,6 @@ export default async function TemplateEditorPage({
                 maxLength={80}
                 className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
               />
-            </div>
-            <div>
-              <label
-                htmlFor="targetCount"
-                className="mb-1.5 block text-sm font-medium"
-              >
-                Daily target
-              </label>
-              <input
-                id="targetCount"
-                name="targetCount"
-                type="number"
-                min={0}
-                max={template.items.length}
-                defaultValue={template.targetCount}
-                className="h-11 w-24 rounded-xl border border-border bg-surface px-3 text-base"
-              />
-              <p className="mt-1.5 text-xs text-muted">
-                A good day = at least this many of {template.items.length} item
-                {template.items.length === 1 ? "" : "s"} done. An accepted{" "}
-                <span className="heb">אונס</span> counts a short day as good.
-              </p>
             </div>
             <Button type="submit" size="sm">
               Save
@@ -123,6 +115,12 @@ export default async function TemplateEditorPage({
               <span className="sr-only">Add</span>
             </Button>
           </form>
+
+          <AddExistingItems
+            templateId={template.id}
+            templateName={template.name}
+            available={availableLabels}
+          />
         </Card>
 
         {/* Day-type assignment */}

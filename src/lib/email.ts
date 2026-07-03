@@ -66,10 +66,8 @@ export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
 export type WeeklyReportEmail = {
   studentName: string;
   weekRange: string;
-  daysGood: number;
-  daysShort: number;
   daysTracked: number;
-  lines: string[]; // per-day "Mon Jun 9 — Good" style lines
+  lines: string[]; // per-day "Mon Jun 9 — 5 of 8 done" style lines
 };
 
 export async function sendWeeklyReport(
@@ -77,11 +75,11 @@ export async function sendWeeklyReport(
   data: WeeklyReportEmail,
 ): Promise<void> {
   const subject = `Your Orech Chaim report — ${data.weekRange}`;
-  const summary = `${data.daysGood} good · ${data.daysShort} short (of ${data.daysTracked} days filled in)`;
+  const daysLabel = `${data.daysTracked} ${data.daysTracked === 1 ? "day" : "days"} filled in`;
   const text = [
     `Your week — ${data.weekRange}. Forward this to your rebbe.`,
     "",
-    summary,
+    daysLabel,
     "",
     ...data.lines,
   ].join("\n");
@@ -98,8 +96,8 @@ export async function sendWeeklyReport(
     <h1 style="font-size:20px;margin:0 0 4px">Your week</h1>
     <p style="margin:0 0 16px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
     <div style="background:#e7eefb;border-radius:12px;padding:16px;margin:0 0 16px">
-      <p style="margin:0;font-size:18px;font-weight:700">${data.daysGood} good · ${data.daysShort} short</p>
-      <p style="margin:2px 0 0;color:#5b6b82;font-size:13px">of ${data.daysTracked} days filled in</p>
+      <p style="margin:0;font-size:18px;font-weight:700">${daysLabel}</p>
+      <p style="margin:2px 0 0;color:#5b6b82;font-size:13px">a record of what you did &amp; didn't get to</p>
     </div>
     <table style="width:100%;border-collapse:collapse">${rows}</table>
   </div>`;

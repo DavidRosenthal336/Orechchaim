@@ -14,8 +14,7 @@ type StudentRecord = DayUserSettings & { name: string | null; email: string };
 export type DayBoardStatus =
   | "UPCOMING"
   | "OPEN"
-  | "GOOD"
-  | "SHORT"
+  | "FILLED"
   | "MISSED"
   | "ASSUR_WAIT"
   | "NO_CHECKLIST";
@@ -27,7 +26,7 @@ export type BoardDay = {
   eventName: string | null; // set for one-off SPECIAL event days
   status: DayBoardStatus;
   completed: number;
-  target: number;
+  total: number; // number of items on the list that day
   onesCount: number; // items excused (אונס) that day
   isAssurMelacha: boolean;
 };
@@ -43,7 +42,9 @@ export async function getWeekBoard(
 
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { in: dayKeys } },
-    include: { checks: { where: { ones: true }, select: { id: true } } },
+    include: {
+      checks: { select: { ones: true } },
+    },
   });
   const byKey = new Map(entries.map((e) => [e.dateKey, e]));
 
@@ -63,7 +64,7 @@ export async function getWeekBoard(
 
     let status: DayBoardStatus;
     if (entry) {
-      if (entry.status === "SUBMITTED") status = entry.met ? "GOOD" : "SHORT";
+      if (entry.status === "SUBMITTED") status = "FILLED";
       else if (window.state === "OPEN") status = "OPEN";
       else status = "MISSED";
     } else if (window.state === "FUTURE") {
@@ -85,8 +86,8 @@ export async function getWeekBoard(
       eventName: entry?.eventName ?? null,
       status,
       completed: entry?.completedCount ?? 0,
-      target: entry?.targetCount ?? 0,
-      onesCount: entry?.checks.length ?? 0,
+      total: entry?.checks.length ?? 0,
+      onesCount: entry?.checks.filter((c) => c.ones).length ?? 0,
       isAssurMelacha: resolution.isAssurMelacha,
     };
   });
@@ -95,8 +96,6 @@ export async function getWeekBoard(
 export type WeekSummary = {
   weekStart: string;
   daysTracked: number;
-  daysGood: number;
-  daysShort: number;
 };
 
 /// Summary of the last `weeks` weeks for a student, newest first.
@@ -110,7 +109,7 @@ export async function getStudentHistory(
 
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { gte: earliest } },
-    select: { dateKey: true, status: true, met: true },
+    select: { dateKey: true, status: true },
   });
 
   const summaries: WeekSummary[] = [];
@@ -120,12 +119,7 @@ export async function getStudentHistory(
     const submitted = entries.filter(
       (e) => days.has(e.dateKey) && e.status === "SUBMITTED",
     );
-    summaries.push({
-      weekStart,
-      daysTracked: submitted.length,
-      daysGood: submitted.filter((e) => e.met).length,
-      daysShort: submitted.filter((e) => !e.met).length,
-    });
+    summaries.push({ weekStart, daysTracked: submitted.length });
   }
   return summaries;
 }

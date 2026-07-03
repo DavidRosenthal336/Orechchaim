@@ -176,9 +176,6 @@ export async function createSpecialEvent(formData: FormData): Promise<void> {
     .safeParse(formData.get("eventName"));
   if (!name.success) return;
 
-  const target = z.coerce.number().int().min(0).max(100).safeParse(formData.get("target"));
-  const targetCount = target.success ? target.data : 0;
-
   const labels = formData
     .getAll("items")
     .map((v) => String(v).trim())
@@ -204,9 +201,7 @@ export async function createSpecialEvent(formData: FormData): Promise<void> {
           overriddenDayType: "SPECIAL",
           eventName: name.data,
           templateId: null,
-          targetCount,
           completedCount: 0,
-          met: false,
           onesRequested: false,
           status: "OPEN",
           submittedAt: null,
@@ -223,7 +218,6 @@ export async function createSpecialEvent(formData: FormData): Promise<void> {
         dayType: "SPECIAL",
         overriddenDayType: "SPECIAL",
         eventName: name.data,
-        targetCount,
         checks,
       },
     });

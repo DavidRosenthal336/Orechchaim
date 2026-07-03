@@ -3,7 +3,6 @@
 import { useOptimistic, useTransition } from "react";
 import { Check } from "lucide-react";
 import { toggleItem, setItemOnes } from "@/app/actions/day";
-import { ProgressRing } from "@/components/progress-ring";
 import { cn } from "@/lib/utils";
 
 export type ChecklistItemView = {
@@ -20,12 +19,10 @@ type Update =
 
 export function DayChecklist({
   dayEntryId,
-  target,
   items,
   editable,
 }: {
   dayEntryId: string;
-  target: number;
   items: ChecklistItemView[];
   editable: boolean;
 }) {
@@ -42,9 +39,9 @@ export function DayChecklist({
       }),
   );
 
+  const total = optimisticItems.length;
   const completed = optimisticItems.filter((it) => it.checked).length;
   const onesCount = optimisticItems.filter((it) => it.ones).length;
-  const effectiveTarget = Math.max(0, target - onesCount);
 
   function onToggleDone(id: string, next: boolean) {
     if (!editable) return;
@@ -64,16 +61,17 @@ export function DayChecklist({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-center">
-        <ProgressRing value={completed} max={effectiveTarget} />
-      </div>
-      {onesCount > 0 ? (
-        <p className="mb-4 text-center text-xs text-warning">
-          {onesCount} excused (<span className="heb">אונס</span>)
+      <div className="mb-4 text-center">
+        <p className="text-3xl font-bold leading-none tabular-nums">
+          {completed}
+          <span className="text-lg font-normal text-muted"> of {total} done</span>
         </p>
-      ) : (
-        <div className="mb-4" />
-      )}
+        {onesCount > 0 ? (
+          <p className="mt-1.5 text-xs text-warning">
+            {onesCount} excused (<span className="heb">אונס</span>)
+          </p>
+        ) : null}
+      </div>
 
       <ul className="space-y-2.5">
         {optimisticItems.map((item) => (
