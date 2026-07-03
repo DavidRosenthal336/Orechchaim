@@ -63,50 +63,134 @@ export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
   );
 }
 
+export type WeeklyReportItem = {
+  label: string;
+  done: number;
+  denom: number;
+  excused: number;
+};
+export type WeeklyReportChecklist = {
+  name: string;
+  occurrences: number;
+  filled: number;
+  items: WeeklyReportItem[];
+};
+export type WeeklyReportOnes = {
+  date: string;
+  item: string;
+  reason: string | null;
+};
 export type WeeklyReportEmail = {
   studentName: string;
   weekRange: string;
-  daysTracked: number;
-  lines: string[]; // per-day "Mon Jun 9 — 5 of 8 done" style lines
+  daysRan: number;
+  daysFilled: number;
+  checklists: WeeklyReportChecklist[];
+  ones: WeeklyReportOnes[];
 };
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/// "4/5", "3/4 *" (with an אונס), or "— all excused".
+function fractionText(it: WeeklyReportItem): string {
+  if (it.denom === 0) return "— all excused";
+  return `${it.done}/${it.denom}${it.excused > 0 ? " *" : ""}`;
+}
 
 export async function sendWeeklyReport(
   to: string,
   data: WeeklyReportEmail,
 ): Promise<void> {
   const subject = `Your Orech Chaim report — ${data.weekRange}`;
-  const daysLabel = `${data.daysTracked} ${data.daysTracked === 1 ? "day" : "days"} filled in`;
-  const text = [
+  const daysLabel = `Filled in ${data.daysFilled} of ${data.daysRan} day${
+    data.daysRan === 1 ? "" : "s"
+  }`;
+  const anyExcused = data.checklists.some((c) =>
+    c.items.some((it) => it.excused > 0),
+  );
+
+  // ---- plain text ----
+  const textParts: string[] = [
     `Your week — ${data.weekRange}. Forward this to your rebbe.`,
     "",
     daysLabel,
-    "",
-    ...data.lines,
-  ].join("\n");
+  ];
+  for (const c of data.checklists) {
+    textParts.push(
+      "",
+      `${c.name} — ${c.occurrences} day${c.occurrences === 1 ? "" : "s"} (filled ${c.filled})`,
+    );
+    for (const it of c.items) textParts.push(`  ${it.label}  ${fractionText(it)}`);
+  }
+  if (data.ones.length > 0) {
+    textParts.push("", `אונס this week (${data.ones.length}):`);
+    for (const o of data.ones)
+      textParts.push(`  ${o.date} · ${o.item}${o.reason ? ` — ${o.reason}` : ""}`);
+  }
+  if (anyExcused)
+    textParts.push("", "* an אונס that week — excused, so it's left out of the count.");
+  const text = textParts.join("\n");
 
-  const esc = (s: string) =>
-    s
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  const rows = data.lines
-    .map(
-      (l) =>
-        `<tr><td style="padding:6px 0;border-bottom:1px solid #eef2f9;font-size:14px">${esc(
-          l,
-        ).replace(/\n/g, "<br>")}</td></tr>`,
-    )
+  // ---- html ----
+  const cards = data.checklists
+    .map((c) => {
+      const rows = c.items
+        .map((it) => {
+          const star = it.excused > 0 ? ` <span style="color:#b7791f">*</span>` : "";
+          const frac =
+            it.denom === 0 ? "— all excused" : `${it.done}/${it.denom}${star}`;
+          return `<tr>
+            <td style="padding:5px 0;font-size:14px;border-top:1px solid #eef2f9">${esc(it.label)}</td>
+            <td style="padding:5px 0;font-size:14px;font-weight:600;text-align:right;white-space:nowrap;border-top:1px solid #eef2f9">${frac}</td>
+          </tr>`;
+        })
+        .join("");
+      const missed = c.occurrences - c.filled;
+      const sub =
+        `${c.occurrences} day${c.occurrences === 1 ? "" : "s"}` +
+        (missed > 0 ? ` · ${missed} not filled in` : "");
+      return `<div style="border:1px solid #e6ebf3;border-radius:12px;padding:14px 16px;margin:0 0 12px">
+        <p style="margin:0 0 4px;font-size:15px;font-weight:700">${esc(c.name)}</p>
+        <p style="margin:0 0 6px;color:#5b6b82;font-size:12px">${sub}</p>
+        <table style="width:100%;border-collapse:collapse">${rows}</table>
+      </div>`;
+    })
     .join("");
+
+  const onesHtml =
+    data.ones.length > 0
+      ? `<div style="border:1px solid #f0e2c8;background:#fbf6ea;border-radius:12px;padding:14px 16px;margin:0 0 12px">
+          <p style="margin:0 0 8px;font-size:15px;font-weight:700">אונס this week (${data.ones.length})</p>
+          <table style="width:100%;border-collapse:collapse">
+          ${data.ones
+            .map(
+              (o) =>
+                `<tr><td style="padding:4px 0;font-size:13px;color:#4a5568;vertical-align:top;white-space:nowrap">${esc(
+                  o.date,
+                )}</td><td style="padding:4px 0 4px 10px;font-size:13px;color:#243044">${esc(
+                  o.item,
+                )}${o.reason ? ` — <span style="color:#5b6b82">${esc(o.reason)}</span>` : ""}</td></tr>`,
+            )
+            .join("")}
+          </table>
+        </div>`
+      : "";
+
+  const footnote = anyExcused
+    ? `<p style="margin:4px 0 0;color:#8a97a8;font-size:11px">* an אונס that week — excused, so it's left out of the count.</p>`
+    : "";
 
   const html = `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#243044">
     <h1 style="font-size:20px;margin:0 0 4px">Your week</h1>
-    <p style="margin:0 0 16px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
-    <div style="background:#e7eefb;border-radius:12px;padding:16px;margin:0 0 16px">
-      <p style="margin:0;font-size:18px;font-weight:700">${daysLabel}</p>
-      <p style="margin:2px 0 0;color:#5b6b82;font-size:13px">a record of what you did &amp; didn't get to</p>
+    <p style="margin:0 0 14px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
+    <div style="background:#e7eefb;border-radius:12px;padding:12px 16px;margin:0 0 16px">
+      <p style="margin:0;font-size:16px;font-weight:700">${daysLabel}</p>
     </div>
-    <table style="width:100%;border-collapse:collapse">${rows}</table>
+    ${cards}
+    ${onesHtml}
+    ${footnote}
   </div>`;
 
   await sendEmail({ to, subject, html, text });
