@@ -3,15 +3,15 @@ import { redirect } from "next/navigation";
 import { ChevronLeft, Plus } from "lucide-react";
 import { requireUser } from "@/lib/dal";
 import { getTemplateForUser, getTemplatesForUser } from "@/lib/queries";
-import {
-  updateTemplateMeta,
-  archiveTemplate,
-  addItem,
-  setAssignments,
-} from "@/app/actions/templates";
+import { archiveTemplate, addItem } from "@/app/actions/templates";
 import { Card, Button } from "@/components/ui";
 import { SortableItems } from "@/components/sortable-items";
 import { AddExistingItems } from "@/components/add-existing-items";
+import {
+  TemplateMetaForm,
+  AssignmentsForm,
+  type AssignmentRow,
+} from "@/components/template-forms";
 import {
   ASSIGNABLE_DAY_TYPES,
   DAY_TYPE_LABELS,
@@ -49,6 +49,18 @@ export default async function TemplateEditorPage({
     }
   }
 
+  const assignmentRows: AssignmentRow[] = ASSIGNABLE_DAY_TYPES.map((dayType) => {
+    const owner = ownerByDayType.get(dayType);
+    const elsewhere = owner && owner.id !== template.id;
+    return {
+      dayType,
+      label: DAY_TYPE_LABELS[dayType],
+      hint: DAY_TYPE_HINTS[dayType],
+      checked: owner?.id === template.id,
+      movesFrom: elsewhere ? owner!.name : undefined,
+    };
+  });
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
       <header className="flex items-center gap-2 py-5">
@@ -66,26 +78,7 @@ export default async function TemplateEditorPage({
 
       <main className="flex-1 space-y-5 pb-10">
         {/* Name */}
-        <Card>
-          <form action={updateTemplateMeta} className="space-y-4">
-            <input type="hidden" name="templateId" value={template.id} />
-            <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
-                Checklist name
-              </label>
-              <input
-                id="name"
-                name="name"
-                defaultValue={template.name}
-                maxLength={80}
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
-              />
-            </div>
-            <Button type="submit" size="sm">
-              Save
-            </Button>
-          </form>
-        </Card>
+        <TemplateMetaForm templateId={template.id} name={template.name} />
 
         {/* Items */}
         <Card className="space-y-3">
@@ -128,53 +121,7 @@ export default async function TemplateEditorPage({
         </Card>
 
         {/* Day-type assignment */}
-        <Card>
-          <form action={setAssignments} className="space-y-3">
-            <input type="hidden" name="templateId" value={template.id} />
-            <h2 className="text-sm font-semibold text-muted">
-              Show this checklist on
-            </h2>
-            <div className="space-y-2">
-              {ASSIGNABLE_DAY_TYPES.map((dayType) => {
-                const owner = ownerByDayType.get(dayType);
-                const here = owner?.id === template.id;
-                const elsewhere = owner && owner.id !== template.id;
-                const hint = DAY_TYPE_HINTS[dayType];
-                return (
-                  <label
-                    key={dayType}
-                    className="flex items-start gap-3 rounded-lg px-1 py-1.5"
-                  >
-                    <input
-                      type="checkbox"
-                      name="dayTypes"
-                      value={dayType}
-                      defaultChecked={here}
-                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-[var(--accent)]"
-                    />
-                    <span className="min-w-0 text-sm">
-                      <span className="font-medium">{DAY_TYPE_LABELS[dayType]}</span>
-                      {elsewhere ? (
-                        <span className="text-xs text-warning">
-                          {" "}
-                          — moves from {owner!.name}
-                        </span>
-                      ) : null}
-                      {hint ? (
-                        <span className="mt-0.5 block text-xs leading-snug text-muted">
-                          {hint}
-                        </span>
-                      ) : null}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            <Button type="submit" size="sm">
-              Save assignments
-            </Button>
-          </form>
-        </Card>
+        <AssignmentsForm templateId={template.id} rows={assignmentRows} />
 
         {/* Delete */}
         <form action={archiveTemplate}>

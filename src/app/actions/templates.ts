@@ -33,12 +33,19 @@ export async function createTemplate(formData: FormData): Promise<void> {
   redirect(`/checklists/${created.id}`);
 }
 
-export async function updateTemplateMeta(formData: FormData): Promise<void> {
+export type MetaState = { ok?: boolean; error?: string };
+
+export async function updateTemplateMeta(
+  _prev: MetaState,
+  formData: FormData,
+): Promise<MetaState> {
   const templateId = String(formData.get("templateId"));
   await assertOwner(templateId);
 
   const name = nameSchema.safeParse(formData.get("name"));
-  if (!name.success) return;
+  if (!name.success) {
+    return { error: name.error.issues[0]?.message ?? "Give it a name." };
+  }
 
   await db.checklistTemplate.update({
     where: { id: templateId },
@@ -46,6 +53,7 @@ export async function updateTemplateMeta(formData: FormData): Promise<void> {
   });
   revalidatePath(`/checklists/${templateId}`);
   revalidatePath("/checklists");
+  return { ok: true };
 }
 
 export async function archiveTemplate(formData: FormData): Promise<void> {
@@ -153,7 +161,12 @@ export async function deleteItem(formData: FormData): Promise<void> {
 /// Replace the set of day-types this template is assigned to. Because each
 /// day-type maps to at most one template, assigning here moves the day-type
 /// off any other template.
-export async function setAssignments(formData: FormData): Promise<void> {
+export type AssignState = { ok?: boolean };
+
+export async function setAssignments(
+  _prev: AssignState,
+  formData: FormData,
+): Promise<AssignState> {
   const templateId = String(formData.get("templateId"));
   const userId = await assertOwner(templateId);
 
@@ -183,4 +196,5 @@ export async function setAssignments(formData: FormData): Promise<void> {
 
   revalidatePath(`/checklists/${templateId}`);
   revalidatePath("/checklists");
+  return { ok: true };
 }

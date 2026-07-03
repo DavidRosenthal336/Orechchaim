@@ -58,10 +58,14 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
 
   const trimmed = value.trim();
   const dirty = trimmed !== item.label.trim();
-  const canSave = dirty && trimmed.length > 0 && !isPending;
 
   function save() {
-    if (!canSave) return;
+    if (isPending || trimmed.length === 0) return;
+    if (!dirty) {
+      // Nothing changed — still confirm the tap so it never feels dead.
+      setStatus("saved");
+      return;
+    }
     const fd = new FormData();
     fd.set("templateId", templateId);
     fd.set("itemId", item.id);
@@ -120,14 +124,14 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
         <button
           type="button"
           onClick={save}
-          disabled={!canSave && status !== "saved"}
+          disabled={isPending || trimmed.length === 0}
           className={cn(
             "mt-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
             status === "saved"
               ? "text-positive"
-              : canSave
+              : dirty
                 ? "bg-accent-soft text-accent"
-                : "text-muted",
+                : "text-accent",
           )}
         >
           {status === "saved" ? (
