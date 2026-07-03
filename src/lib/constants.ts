@@ -55,7 +55,6 @@ export const ASSIGNABLE_DAY_TYPES: DayType[] = [
   "SHABBOS",
   "YOM_TOV",
   "CHOL_HAMOED",
-  "ROSH_CHODESH",
   "FAST_DAY",
 ];
 

@@ -59,13 +59,15 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
   const trimmed = value.trim();
   const dirty = trimmed !== item.label.trim();
 
-  function save() {
-    if (isPending || trimmed.length === 0) return;
-    if (!dirty) {
-      // Nothing changed — still confirm the tap so it never feels dead.
-      setStatus("saved");
+  // Auto-save when the field loses focus. Empties revert; unchanged text is a
+  // no-op (no flash).
+  function commit() {
+    if (isPending) return;
+    if (trimmed.length === 0) {
+      setValue(item.label); // can't save an empty item — put it back
       return;
     }
+    if (!dirty) return;
     const fd = new FormData();
     fd.set("templateId", templateId);
     fd.set("itemId", item.id);
@@ -115,35 +117,29 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
             if (status !== "idle") setStatus("idle");
           }}
           onInput={(e) => autoGrow(e.currentTarget)}
+          onBlur={commit}
           maxLength={200}
           rows={1}
           dir="ltr"
           className="min-h-[2.25rem] w-full resize-none overflow-hidden break-words rounded-lg border border-border bg-surface px-2.5 py-2 text-left text-sm leading-snug"
         />
 
-        <button
-          type="button"
-          onClick={save}
-          disabled={isPending || trimmed.length === 0}
-          className={cn(
-            "mt-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors",
-            status === "saved"
-              ? "text-positive"
-              : dirty
-                ? "bg-accent-soft text-accent"
-                : "text-accent",
-          )}
-        >
-          {status === "saved" ? (
-            <>
-              <Check className="h-3.5 w-3.5" strokeWidth={3} /> Saved
-            </>
-          ) : isPending ? (
-            "Saving…"
-          ) : (
-            "Save"
-          )}
-        </button>
+        {/* Tiny transient save indicator; the row otherwise has just the trash. */}
+        {status === "saving" || status === "saved" ? (
+          <span
+            className={cn(
+              "mt-2 shrink-0 text-xs",
+              status === "saved" ? "text-positive" : "text-muted",
+            )}
+            aria-live="polite"
+          >
+            {status === "saved" ? (
+              <Check className="h-4 w-4" strokeWidth={3} />
+            ) : (
+              "…"
+            )}
+          </span>
+        ) : null}
 
         <button
           type="button"

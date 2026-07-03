@@ -49,24 +49,23 @@ export function resolveDayTypeForYmd(
   const events = getHolidaysOnDate(hd, inIsrael) ?? [];
   let isYomTov = false;
   let isCholHamoed = false;
-  let isRoshChodesh = false;
   let isFast = false;
   for (const ev of events) {
     const f = ev.getFlags();
     if (f & flags.CHAG) isYomTov = true;
     if (f & flags.CHOL_HAMOED) isCholHamoed = true;
-    if (f & flags.ROSH_CHODESH) isRoshChodesh = true;
     if (f & (flags.MINOR_FAST | flags.MAJOR_FAST)) isFast = true;
   }
 
   // The plain calendar day-type (ignoring fasts and Bein Hazmanim).
   // Precedence (highest first). Shabbos outranks Chol Hamoed; Yom Tov tops all.
+  // Rosh Chodesh is not its own type — those days use their weekday/Shabbos
+  // list (its name still shows in `holidays`).
   let baseDayType: DayType;
   if (isYomTov) baseDayType = "YOM_TOV";
   else if (dow === 6) baseDayType = "SHABBOS";
   else if (isCholHamoed) baseDayType = "CHOL_HAMOED";
   else if (dow === 5) baseDayType = "EREV_SHABBOS";
-  else if (isRoshChodesh) baseDayType = "ROSH_CHODESH";
   else if (dow === 0) baseDayType = "SUNDAY";
   else baseDayType = "WEEKDAY";
 

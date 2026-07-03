@@ -47,10 +47,12 @@ describe("day-type resolution", () => {
     expect(r.isAssurMelacha).toBe(true);
   });
 
-  it("detects Rosh Chodesh on a weekday", () => {
+  it("treats Rosh Chodesh as an ordinary weekday (no separate list)", () => {
     // Rosh Chodesh Sivan 5785 = Wed May 28, 2025.
     const r = resolveDayTypeForYmd(2025, 5, 28);
-    expect(r.baseDayType).toBe("ROSH_CHODESH");
+    expect(r.baseDayType).toBe("WEEKDAY");
+    // Its name still surfaces for display.
+    expect(r.holidays.join(" ")).toMatch(/Rosh Chodesh/);
   });
 
   it("Israel vs Diaspora differ on the 8th day of Pesach", () => {
