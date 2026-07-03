@@ -6,7 +6,7 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/icons/icon-192.png"
+      src="/icons/icon-192.png?v=2"
       alt="Orech Chaim"
       className={cn("rounded-[22%]", className)}
     />
