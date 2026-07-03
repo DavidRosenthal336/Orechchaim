@@ -2,8 +2,8 @@
 // Conservative by design: it never caches authenticated page HTML (which would
 // risk showing stale checklist data), only static assets and an offline page.
 
-const CACHE = "orech-v1";
-const PRECACHE = ["/offline", "/icons/icon-192.png"];
+const CACHE = "orech-v2";
+const PRECACHE = ["/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -38,11 +38,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache-first.
-  if (
-    url.pathname.startsWith("/_next/static") ||
-    url.pathname.startsWith("/icons")
-  ) {
+  // Icons: network-first so a new logo propagates; fall back to cache offline.
+  if (url.pathname.startsWith("/icons")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req)),
+    );
+    return;
+  }
+
+  // Hashed build assets: cache-first (their URL changes when they change).
+  if (url.pathname.startsWith("/_next/static")) {
     event.respondWith(
       caches.match(req).then(
         (cached) =>
