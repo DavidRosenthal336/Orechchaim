@@ -40,15 +40,13 @@ export const DAY_TYPE_LABELS: Record<DayType, string> = {
 /// Short hints shown under a day-type in the assignment picker.
 export const DAY_TYPE_HINTS: Partial<Record<DayType, string>> = {
   BEIN_HAZMANIM:
-    "shown on weekdays while Bein Hazmanim mode is on — Shabbos & Yom Tov keep their own lists. Falls back to your Sunday list if unset.",
+    "used on weekdays & Sundays while Bein Hazmanim mode is on. Falls back to your Sunday list if unset.",
   FAST_DAY:
     "auto-detected on fasts (Tzom Gedaliah, Asara B'Teves, Taanis Esther, Shiva Asar B'Tammuz, Tisha B'Av).",
-  SPECIAL: "manual override.",
 };
 
-/// Day-types the student can assign a checklist to in the UI. SPECIAL is
-/// applied via the manual override rather than auto-detected, but is still a
-/// valid assignment target.
+/// Day-types the student can assign a checklist to in the UI. SPECIAL is not
+/// listed — a special event is declared per-day rather than pre-assigned.
 export const ASSIGNABLE_DAY_TYPES: DayType[] = [
   "WEEKDAY",
   "BEIN_HAZMANIM",
@@ -59,7 +57,6 @@ export const ASSIGNABLE_DAY_TYPES: DayType[] = [
   "CHOL_HAMOED",
   "ROSH_CHODESH",
   "FAST_DAY",
-  "SPECIAL",
 ];
 
 /// Day-types on which the device can't be used in real time, so the checklist

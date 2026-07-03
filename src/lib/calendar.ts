@@ -78,8 +78,11 @@ export function resolveDayTypeForYmd(
     baseDayType !== "SHABBOS" &&
     baseDayType !== "CHOL_HAMOED";
 
-  // Bein Hazmanim: an ordinary weekday uses the Bein Hazmanim checklist.
-  const beinHazmanimApplied = Boolean(opts.beinHazmanim) && baseDayType === "WEEKDAY";
+  // Bein Hazmanim: ordinary weekdays and Sundays use the Bein Hazmanim
+  // checklist. Shabbos, Erev Shabbos, Yom Tov, etc. are unaffected.
+  const beinHazmanimApplied =
+    Boolean(opts.beinHazmanim) &&
+    (baseDayType === "WEEKDAY" || baseDayType === "SUNDAY");
 
   // The weekday-ish list underneath a fast (or the base itself).
   const target =

@@ -19,6 +19,8 @@ export type DayBoardStatus =
   | "ASSUR_WAIT"
   | "NO_CHECKLIST";
 
+export type OnesItem = { label: string; reason: string | null };
+
 export type BoardDay = {
   dateKey: string;
   dayType: DayType;
@@ -28,6 +30,7 @@ export type BoardDay = {
   completed: number;
   total: number; // number of items on the list that day
   onesCount: number; // items excused (אונס) that day
+  onesItems: OnesItem[]; // the excused items with their reasons
   isAssurMelacha: boolean;
 };
 
@@ -43,7 +46,7 @@ export async function getWeekBoard(
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { in: dayKeys } },
     include: {
-      checks: { select: { ones: true } },
+      checks: { select: { ones: true, itemLabel: true, onesReason: true } },
     },
   });
   const byKey = new Map(entries.map((e) => [e.dateKey, e]));
@@ -88,6 +91,10 @@ export async function getWeekBoard(
       completed: entry?.completedCount ?? 0,
       total: entry?.checks.length ?? 0,
       onesCount: entry?.checks.filter((c) => c.ones).length ?? 0,
+      onesItems:
+        entry?.checks
+          .filter((c) => c.ones)
+          .map((c) => ({ label: c.itemLabel, reason: c.onesReason })) ?? [],
       isAssurMelacha: resolution.isAssurMelacha,
     };
   });

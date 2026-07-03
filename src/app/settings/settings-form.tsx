@@ -83,7 +83,7 @@ export function SettingsForm({ timezones, initial }: Props) {
             name="beinHazmanimMode"
             defaultChecked={initial.beinHazmanimMode}
             label="Bein Hazmanim mode"
-            description="While on, weekdays use your Bein Hazmanim checklist (set it under Checklists → “Bein Hazmanim”; if you don’t, it falls back to your Sunday list). Shabbos and Yom Tov keep their own lists. Turn it off when the zman resumes."
+            description="While on, weekdays and Sundays use your Bein Hazmanim checklist (set it under Checklists → “Bein Hazmanim”; if unset, it falls back to your Sunday list). Turn it off when the zman resumes."
           />
         </div>
       </details>

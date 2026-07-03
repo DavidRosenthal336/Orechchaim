@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { DateTime } from "luxon";
-import { db } from "@/lib/db";
 import { ensureDayEntry, loadDay } from "@/lib/day";
 import { formatCivilDate } from "@/lib/calendar";
-import { DAY_TYPE_LABELS, type DayType } from "@/lib/constants";
-import { submitDay, reopenDay, setDayOverride } from "@/app/actions/day";
+import { DAY_TYPE_LABELS } from "@/lib/constants";
+import { submitDay, reopenDay } from "@/app/actions/day";
 import { DayChecklist } from "@/components/day-checklist";
 import { SpecialEventForm } from "@/components/special-event-form";
 import { Card, Button, ButtonLink } from "@/components/ui";
@@ -127,17 +126,12 @@ export async function DayView({
     label: c.itemLabel,
     checked: c.checked,
     ones: c.ones,
+    onesReason: c.onesReason,
     hebrew: isHebrew(c.itemLabel),
   }));
   const editable = window.state === "OPEN" && entry.status !== "SUBMITTED";
   const submitted = entry.status === "SUBMITTED";
   const closed = window.state !== "OPEN";
-
-  // Day-types the user has a checklist for (for the override control).
-  const assignments = await db.dayTypeAssignment.findMany({
-    where: { userId: user.id },
-    include: { template: { select: { name: true } } },
-  });
 
   return (
     <div>
@@ -178,36 +172,9 @@ export async function DayView({
         ) : null}
 
         {editable ? (
-          <details className="rounded-2xl border border-border bg-surface px-5">
-            <summary className="cursor-pointer list-none py-3 text-xs font-medium text-muted">
-              Wrong checklist for today?
-            </summary>
-            <div className="space-y-4 border-t border-border py-4">
-              {assignments.length > 0 ? (
-                <form action={setDayOverride} className="space-y-2">
-                  <input type="hidden" name="dayEntryId" value={entry.id} />
-                  <select
-                    name="dayType"
-                    defaultValue={effectiveDayType}
-                    className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
-                  >
-                    {assignments.map((a) => (
-                      <option key={a.id} value={a.dayType}>
-                        {DAY_TYPE_LABELS[a.dayType as DayType]} — {a.template.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted">
-                    Replaces today&apos;s checklist and resets your checks.
-                  </p>
-                  <Button type="submit" variant="secondary" size="sm">
-                    Use this checklist
-                  </Button>
-                </form>
-              ) : null}
-              <SpecialEventForm dateKey={dateKey} />
-            </div>
-          </details>
+          <div className="pt-1 text-center">
+            <SpecialEventForm dateKey={dateKey} />
+          </div>
         ) : null}
 
         <div className="pt-2 text-center">

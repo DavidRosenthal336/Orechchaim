@@ -84,10 +84,17 @@ export async function sendWeeklyReport(
     ...data.lines,
   ].join("\n");
 
+  const esc = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   const rows = data.lines
     .map(
       (l) =>
-        `<tr><td style="padding:6px 0;border-bottom:1px solid #eef2f9;font-size:14px">${l}</td></tr>`,
+        `<tr><td style="padding:6px 0;border-bottom:1px solid #eef2f9;font-size:14px">${esc(
+          l,
+        ).replace(/\n/g, "<br>")}</td></tr>`,
     )
     .join("");
 

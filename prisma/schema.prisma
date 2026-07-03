@@ -187,6 +187,7 @@ model ItemCheck {
   order      Int      @default(0)
   checked    Boolean  @default(false)
   ones       Boolean  @default(false) // excused (אונס) — doesn't count against the score
+  onesReason String?  // required reason captured when the item is marked אונס
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

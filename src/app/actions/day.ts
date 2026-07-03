@@ -8,7 +8,6 @@ import { requireUser } from "@/lib/dal";
 import { recomputeEntry } from "@/lib/day";
 import { resolveDayType } from "@/lib/calendar";
 import { computeDayWindow, resolveOptsFor, type DayUserSettings } from "@/lib/dayWindow";
-import { isDayType } from "@/lib/constants";
 
 function settings(user: {
   id: string;
@@ -69,20 +68,27 @@ export async function toggleItem(
   revalidateDay(entry.dateKey);
 }
 
-/// Marks a single item as אונס (excused) or clears it. Excused items don't
-/// count against the day's score. Called optimistically from the client.
+/// Marks a single item as אונס (excused) or clears it. Marking requires a
+/// non-empty reason; clearing does not. Excused items don't count against the
+/// day. Called optimistically from the client.
 export async function setItemOnes(
   dayEntryId: string,
   itemCheckId: string,
   ones: boolean,
+  reason?: string,
 ): Promise<void> {
   const { user, entry } = await loadOwned(dayEntryId);
   if (entry.status === "SUBMITTED" || !isWindowOpen(user, entry.dateKey)) return;
 
+  const trimmed = (reason ?? "").trim().slice(0, 300);
+  // A reason is mandatory to mark אונס — bail if it's missing.
+  if (ones && trimmed.length === 0) return;
+
   await db.itemCheck.updateMany({
     where: { id: itemCheckId, dayEntryId },
-    // Excusing an item clears its done state.
-    data: { ones: Boolean(ones), checked: ones ? false : undefined },
+    data: ones
+      ? { ones: true, checked: false, onesReason: trimmed }
+      : { ones: false, onesReason: null },
   });
   await recomputeEntry(dayEntryId);
   revalidateDay(entry.dateKey);
@@ -107,54 +113,6 @@ export async function reopenDay(formData: FormData): Promise<void> {
   await db.dayEntry.update({
     where: { id: entry.id },
     data: { status: "OPEN", submittedAt: null },
-  });
-  revalidateDay(entry.dateKey);
-}
-
-/// Manual override of which checklist applies to a day (tucked-away control).
-/// Re-snapshots the items from the chosen day-type's checklist.
-export async function setDayOverride(formData: FormData): Promise<void> {
-  const { user, entry } = await loadOwned(String(formData.get("dayEntryId")));
-  if (!isWindowOpen(user, entry.dateKey)) return;
-
-  const dayType = String(formData.get("dayType"));
-  if (!isDayType(dayType)) return;
-
-  const assignment = await db.dayTypeAssignment.findUnique({
-    where: { userId_dayType: { userId: user.id, dayType } },
-  });
-  const template = assignment
-    ? await db.checklistTemplate.findFirst({
-        where: { id: assignment.templateId, isArchived: false },
-        include: {
-          items: { where: { isArchived: false }, orderBy: { order: "asc" } },
-        },
-      })
-    : null;
-  if (!template) return; // no checklist for that day-type — ignore
-
-  await db.$transaction(async (tx) => {
-    await tx.itemCheck.deleteMany({ where: { dayEntryId: entry.id } });
-    await tx.dayEntry.update({
-      where: { id: entry.id },
-      data: {
-        overriddenDayType: dayType,
-        dayType,
-        templateId: template.id,
-        targetCount: template.targetCount,
-        completedCount: 0,
-        met: false,
-        status: "OPEN",
-        submittedAt: null,
-        checks: {
-          create: template.items.map((it, i) => ({
-            itemId: it.id,
-            itemLabel: it.label,
-            order: i,
-          })),
-        },
-      },
-    });
   });
   revalidateDay(entry.dateKey);
 }

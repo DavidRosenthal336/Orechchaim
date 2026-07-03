@@ -88,8 +88,10 @@ describe("Bein Hazmanim mode", () => {
     expect(r.beinHazmanimApplied).toBe(false);
   });
 
-  it("leaves Sunday and Friday on their own assignments", () => {
-    expect(resolveDayTypeForYmd(2025, 6, 15, opts).beinHazmanimApplied).toBe(false); // Sun
+  it("also overrides Sunday, but leaves Erev Shabbos alone", () => {
+    const sun = resolveDayTypeForYmd(2025, 6, 15, opts); // Sun
+    expect(sun.beinHazmanimApplied).toBe(true);
+    expect(sun.dayType).toBe("BEIN_HAZMANIM");
     expect(resolveDayTypeForYmd(2025, 6, 13, opts).beinHazmanimApplied).toBe(false); // Fri
   });
 

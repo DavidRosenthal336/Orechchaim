@@ -23,7 +23,12 @@ async function buildReportData(student: ReportStudent, weekStart: string, now: D
     const excused = d.onesCount > 0 ? ` · ${d.onesCount} excused (אונס)` : "";
     if (d.status === "FILLED") {
       daysTracked++;
-      lines.push(`${dow} — ${event}${d.completed} of ${d.total} done${excused}`);
+      let line = `${dow} — ${event}${d.completed} of ${d.total} done${excused}`;
+      // Spell out each אונס and its reason for the rebbe.
+      for (const o of d.onesItems) {
+        line += `\n    · אונס — ${o.label}${o.reason ? `: ${o.reason}` : ""}`;
+      }
+      lines.push(line);
     } else if (d.status === "MISSED" || d.status === "OPEN") {
       lines.push(`${dow} — ${event}Not filled in`);
     }
