@@ -102,7 +102,10 @@ export async function sendWeeklyReport(
   to: string,
   data: WeeklyReportEmail,
 ): Promise<void> {
-  const subject = `Your Orech Chaim report — ${data.weekRange}`;
+  const name = data.studentName.trim();
+  // "Dovid Rosenthal's week" when a name is set, else "Your week".
+  const heading = name ? `${name}${name.endsWith("s") ? "'" : "'s"} week` : "Your week";
+  const subject = `${name ? `${name} — ` : "Your "}Orech Chaim report — ${data.weekRange}`;
   const daysLabel = `Filled in ${data.daysFilled} of ${data.daysRan} day${
     data.daysRan === 1 ? "" : "s"
   }`;
@@ -112,7 +115,7 @@ export async function sendWeeklyReport(
 
   // ---- plain text ----
   const textParts: string[] = [
-    `Your week — ${data.weekRange}. Forward this to your rebbe.`,
+    `${heading} — ${data.weekRange}. Forward this to your rebbe.`,
     "",
     daysLabel,
   ];
@@ -183,7 +186,7 @@ export async function sendWeeklyReport(
 
   const html = `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#243044">
-    <h1 style="font-size:20px;margin:0 0 4px">Your week</h1>
+    <h1 style="font-size:20px;margin:0 0 4px">${esc(heading)}</h1>
     <p style="margin:0 0 14px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
     <div style="background:#e7eefb;border-radius:12px;padding:12px 16px;margin:0 0 16px">
       <p style="margin:0;font-size:16px;font-weight:700">${daysLabel}</p>

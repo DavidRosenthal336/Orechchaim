@@ -211,7 +211,7 @@ export async function generateAndSendWeeklyReports(
     });
 
     const email: WeeklyReportEmail = {
-      studentName: student.name ?? student.email,
+      studentName: student.name ?? "",
       weekRange: formatWeekRange(completedWeekStart),
       daysRan: data.daysRan,
       daysFilled: data.daysFilled,
