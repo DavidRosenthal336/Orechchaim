@@ -114,6 +114,7 @@ export default async function TemplateEditorPage({
               name="label"
               required
               maxLength={200}
+              dir="auto"
               placeholder="Add an item…"
               className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
             />

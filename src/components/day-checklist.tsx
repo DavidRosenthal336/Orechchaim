@@ -88,11 +88,11 @@ export function DayChecklist({
               type="button"
               disabled={!editable || item.ones}
               onClick={() => onToggleDone(item.id, !item.checked)}
-              className="flex flex-1 items-center gap-3 text-left"
+              className="flex min-w-0 flex-1 items-start gap-3 text-left"
             >
               <span
                 className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                   item.checked
                     ? "border-positive bg-positive text-white"
                     : "border-border",
@@ -102,11 +102,11 @@ export function DayChecklist({
               </span>
               <span
                 className={cn(
-                  "text-[15px] leading-snug",
+                  "min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-snug",
                   item.checked && "text-muted line-through",
                   item.ones && "text-muted line-through decoration-warning",
                 )}
-                dir={item.hebrew ? "rtl" : undefined}
+                dir="auto"
               >
                 {item.label}
               </span>

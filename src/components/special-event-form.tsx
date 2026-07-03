@@ -35,6 +35,7 @@ export function SpecialEventForm({ dateKey }: { dateKey: string }) {
           name="eventName"
           required
           maxLength={120}
+          dir="auto"
           placeholder="e.g. a chasunah, a trip, a yahrzeit…"
           className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-base"
         />
@@ -48,6 +49,7 @@ export function SpecialEventForm({ dateKey }: { dateKey: string }) {
               <input
                 name="items"
                 maxLength={200}
+                dir="auto"
                 placeholder="Add an item…"
                 className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
               />

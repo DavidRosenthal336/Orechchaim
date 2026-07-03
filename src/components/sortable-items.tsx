@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   DndContext,
   closestCenter,
@@ -19,7 +19,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
 import { updateItem, deleteItem, reorderItems } from "@/app/actions/templates";
-import { isHebrew } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 type Item = { id: string; label: string };
@@ -31,6 +30,16 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  function autoGrow(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+  // Size to fit the initial value (and whenever it changes from the server).
+  useEffect(() => {
+    if (textareaRef.current) autoGrow(textareaRef.current);
+  }, [item.label]);
 
   return (
     <li
@@ -46,23 +55,26 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
         {...attributes}
         {...listeners}
         aria-label="Drag to reorder"
-        className="shrink-0 cursor-grab touch-none rounded-md p-1.5 text-muted hover:bg-surface-2"
+        className="mt-1 shrink-0 cursor-grab touch-none rounded-md p-1.5 text-muted hover:bg-surface-2"
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <form action={updateItem} className="flex flex-1 items-center gap-2">
+      <form action={updateItem} className="flex flex-1 items-start gap-2">
         <input type="hidden" name="templateId" value={templateId} />
         <input type="hidden" name="itemId" value={item.id} />
-        <input
+        <textarea
+          ref={textareaRef}
           name="label"
           defaultValue={item.label}
           maxLength={200}
-          dir={isHebrew(item.label) ? "rtl" : "ltr"}
-          className="h-9 w-full rounded-lg border border-border bg-surface px-2.5 text-sm"
+          rows={1}
+          dir="auto"
+          onInput={(e) => autoGrow(e.currentTarget)}
+          className="min-h-[2.25rem] w-full resize-none overflow-hidden break-words rounded-lg border border-border bg-surface px-2.5 py-2 text-sm leading-snug"
         />
         <button
           type="submit"
-          className="shrink-0 rounded-lg px-2 text-xs font-medium text-accent hover:bg-accent-soft"
+          className="mt-1 shrink-0 rounded-lg px-2 text-xs font-medium text-accent hover:bg-accent-soft"
         >
           Save
         </button>
@@ -70,7 +82,7 @@ function Row({ item, templateId }: { item: Item; templateId: string }) {
           type="submit"
           formAction={deleteItem}
           aria-label="Delete item"
-          className="shrink-0 rounded-lg p-1.5 text-muted hover:bg-danger-soft hover:text-danger"
+          className="mt-1 shrink-0 rounded-lg p-1.5 text-muted hover:bg-danger-soft hover:text-danger"
         >
           <Trash2 className="h-4 w-4" />
         </button>
