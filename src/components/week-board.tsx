@@ -19,37 +19,50 @@ export function WeekBoard({ days }: { days: BoardDay[] }) {
         const dow = DateTime.fromISO(d.dateKey).toFormat("ccc");
         const showCount = d.status === "FILLED";
         return (
-          <li
-            key={d.dateKey}
-            className="flex items-center justify-between gap-3 px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium">
-                {dow}{" "}
-                <span className="text-muted">
-                  {DateTime.fromISO(d.dateKey).toFormat("MMM d")}
+          <li key={d.dateKey} className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {dow}{" "}
+                  <span className="text-muted">
+                    {DateTime.fromISO(d.dateKey).toFormat("MMM d")}
+                  </span>
+                </p>
+                <p className="truncate text-xs text-muted">
+                  {d.label}
+                  {d.onesCount > 0 ? ` · ${d.onesCount} excused` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {showCount && d.total > 0 ? (
+                  <span className="text-xs tabular-nums text-muted">
+                    {d.completed}/{d.total} done
+                  </span>
+                ) : null}
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    s.cls,
+                  )}
+                >
+                  {s.label}
                 </span>
-              </p>
-              <p className="truncate text-xs text-muted">
-                {d.label}
-                {d.onesCount > 0 ? ` · ${d.onesCount} excused` : ""}
-              </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {showCount && d.total > 0 ? (
-                <span className="text-xs tabular-nums text-muted">
-                  {d.completed}/{d.total} done
-                </span>
-              ) : null}
-              <span
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                  s.cls,
-                )}
-              >
-                {s.label}
-              </span>
-            </div>
+
+            {d.onesItems.length > 0 ? (
+              <ul className="mt-2 space-y-1 border-l-2 border-warning-soft pl-3">
+                {d.onesItems.map((o, i) => (
+                  <li key={i} className="text-xs leading-snug text-muted">
+                    <span className="heb font-medium text-warning">אונס</span> —{" "}
+                    <span dir="ltr">{o.label}</span>
+                    {o.reason ? (
+                      <span dir="ltr">: {o.reason}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </li>
         );
       })}
