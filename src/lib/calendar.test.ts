@@ -67,11 +67,13 @@ describe("day-type resolution", () => {
 describe("Bein Hazmanim mode", () => {
   const opts = { beinHazmanim: true, beinHazmanimTarget: "SUNDAY" as const };
 
-  it("remaps an ordinary weekday to the lighter (Sunday) checklist", () => {
+  it("remaps an ordinary weekday to the Bein Hazmanim checklist", () => {
     const r = resolveDayTypeForYmd(2025, 4, 22, opts); // Tue
     expect(r.baseDayType).toBe("WEEKDAY");
-    expect(r.dayType).toBe("SUNDAY");
+    expect(r.dayType).toBe("BEIN_HAZMANIM");
     expect(r.beinHazmanimApplied).toBe(true);
+    // Falls back to the Sunday list when no Bein Hazmanim list is assigned.
+    expect(r.checklistCandidates).toEqual(["BEIN_HAZMANIM", "SUNDAY"]);
   });
 
   it("does not touch Shabbos", () => {
@@ -95,6 +97,39 @@ describe("Bein Hazmanim mode", () => {
     const r = resolveDayTypeForYmd(2025, 4, 22, { beinHazmanim: false });
     expect(r.dayType).toBe("WEEKDAY");
     expect(r.beinHazmanimApplied).toBe(false);
+  });
+});
+
+describe("Fast days", () => {
+  it("detects Taanis Esther (a weekday fast) and falls back to WEEKDAY", () => {
+    const r = resolveDayTypeForYmd(2025, 3, 13); // Thu — Ta'anit Esther
+    expect(r.isFastDay).toBe(true);
+    expect(r.baseDayType).toBe("WEEKDAY");
+    expect(r.dayType).toBe("FAST_DAY");
+    expect(r.checklistCandidates).toEqual(["FAST_DAY", "WEEKDAY"]);
+  });
+
+  it("detects Asara B'Teves even when it lands on Erev Shabbos", () => {
+    const r = resolveDayTypeForYmd(2025, 1, 10); // Fri — Asara B'Tevet
+    expect(r.isFastDay).toBe(true);
+    expect(r.baseDayType).toBe("EREV_SHABBOS");
+    expect(r.dayType).toBe("FAST_DAY");
+    expect(r.checklistCandidates).toEqual(["FAST_DAY", "EREV_SHABBOS"]);
+  });
+
+  it("does NOT treat Yom Kippur as a fast day (it stays Yom Tov)", () => {
+    const r = resolveDayTypeForYmd(2025, 10, 2); // Yom Kippur
+    expect(r.isFastDay).toBe(false);
+    expect(r.dayType).toBe("YOM_TOV");
+  });
+
+  it("a fast day survives Bein Hazmanim and falls back through it", () => {
+    const r = resolveDayTypeForYmd(2025, 3, 13, {
+      beinHazmanim: true,
+      beinHazmanimTarget: "SUNDAY",
+    }); // Thu fast during bein hazmanim
+    expect(r.dayType).toBe("FAST_DAY");
+    expect(r.checklistCandidates).toEqual(["FAST_DAY", "BEIN_HAZMANIM", "SUNDAY"]);
   });
 });
 

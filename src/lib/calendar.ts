@@ -8,11 +8,17 @@ import { isDayType, type DayType } from "@/lib/constants";
 export type DayTypeResolution = {
   /// The day-type whose checklist should be shown.
   dayType: DayType;
-  /// What the day actually is, before any Bein Hazmanim remap.
+  /// What the day actually is, before any fast / Bein Hazmanim remap.
   baseDayType: DayType;
+  /// Ordered day-types to try when looking up an assigned checklist: the
+  /// resolved type first, then graceful fallbacks (e.g. a Fast day with no
+  /// fast-day list falls back to the ordinary weekday / Bein Hazmanim list).
+  checklistCandidates: DayType[];
   /// True when Bein Hazmanim mode changed an ordinary weekday into the
-  /// lighter checklist.
+  /// Bein Hazmanim checklist.
   beinHazmanimApplied: boolean;
+  /// True on an auto-detected public fast day (never Shabbos/Yom Tov).
+  isFastDay: boolean;
   /// Shabbos or Yom Tov (incl. Yom Kippur) — device can't be used in real
   /// time, so the checklist is filled Motzei.
   isAssurMelacha: boolean;
@@ -44,13 +50,16 @@ export function resolveDayTypeForYmd(
   let isYomTov = false;
   let isCholHamoed = false;
   let isRoshChodesh = false;
+  let isFast = false;
   for (const ev of events) {
     const f = ev.getFlags();
     if (f & flags.CHAG) isYomTov = true;
     if (f & flags.CHOL_HAMOED) isCholHamoed = true;
     if (f & flags.ROSH_CHODESH) isRoshChodesh = true;
+    if (f & (flags.MINOR_FAST | flags.MAJOR_FAST)) isFast = true;
   }
 
+  // The plain calendar day-type (ignoring fasts and Bein Hazmanim).
   // Precedence (highest first). Shabbos outranks Chol Hamoed; Yom Tov tops all.
   let baseDayType: DayType;
   if (isYomTov) baseDayType = "YOM_TOV";
@@ -61,18 +70,45 @@ export function resolveDayTypeForYmd(
   else if (dow === 0) baseDayType = "SUNDAY";
   else baseDayType = "WEEKDAY";
 
-  // Bein Hazmanim: ordinary weekdays mirror the lighter day's checklist.
+  // A public fast (excluding Yom Kippur, which is Yom Tov) shows the fast-day
+  // list. Fasts never coincide with Shabbos/Yom Tov/Chol Hamoed.
+  const isFastDay =
+    isFast &&
+    baseDayType !== "YOM_TOV" &&
+    baseDayType !== "SHABBOS" &&
+    baseDayType !== "CHOL_HAMOED";
+
+  // Bein Hazmanim: an ordinary weekday uses the Bein Hazmanim checklist.
+  const beinHazmanimApplied = Boolean(opts.beinHazmanim) && baseDayType === "WEEKDAY";
+
+  // The weekday-ish list underneath a fast (or the base itself).
   const target =
     opts.beinHazmanimTarget && isDayType(opts.beinHazmanimTarget)
       ? opts.beinHazmanimTarget
       : "SUNDAY";
-  const beinHazmanimApplied = Boolean(opts.beinHazmanim) && baseDayType === "WEEKDAY";
-  const dayType = beinHazmanimApplied ? target : baseDayType;
+  const underlying: DayType = beinHazmanimApplied ? "BEIN_HAZMANIM" : baseDayType;
+
+  let dayType: DayType;
+  const candidates: DayType[] = [];
+  if (isFastDay) {
+    dayType = "FAST_DAY";
+    candidates.push("FAST_DAY", underlying);
+    if (underlying === "BEIN_HAZMANIM") candidates.push(target);
+  } else if (beinHazmanimApplied) {
+    dayType = "BEIN_HAZMANIM";
+    candidates.push("BEIN_HAZMANIM", target);
+  } else {
+    dayType = baseDayType;
+    candidates.push(baseDayType);
+  }
+  const checklistCandidates = candidates.filter((d, i) => candidates.indexOf(d) === i);
 
   return {
     dayType,
     baseDayType,
+    checklistCandidates,
     beinHazmanimApplied,
+    isFastDay,
     isAssurMelacha: baseDayType === "YOM_TOV" || baseDayType === "SHABBOS",
     hebrewDateEn: `${hd.getDate()} ${hd.getMonthName()} ${hd.getFullYear()}`,
     hebrewDateHe: hd.renderGematriya(),

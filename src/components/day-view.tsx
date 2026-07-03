@@ -51,7 +51,9 @@ export async function DayView({
       <p className="mt-1 text-sm text-muted">
         <span className="heb">{resolution.hebrewDateHe}</span>
         {holiday ? ` · ${holiday}` : ""}
-        {resolution.beinHazmanimApplied ? " · Bein Hazmanim" : ""}
+        {resolution.beinHazmanimApplied && effectiveDayType !== "BEIN_HAZMANIM"
+          ? " · Bein Hazmanim"
+          : ""}
       </p>
     </div>
   );

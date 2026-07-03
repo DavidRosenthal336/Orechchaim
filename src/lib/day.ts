@@ -46,9 +46,17 @@ export async function loadDay(user: DayUserSettings, dateKey: string) {
     };
   }
 
-  const assignment = await db.dayTypeAssignment.findUnique({
-    where: { userId_dayType: { userId: user.id, dayType: effectiveDayType } },
-  });
+  // Try the resolved day-type first, then its graceful fallbacks (e.g. a fast
+  // day with no fast-day list falls back to the weekday / Bein Hazmanim list).
+  let assignment: Awaited<
+    ReturnType<typeof db.dayTypeAssignment.findUnique>
+  > = null;
+  for (const dayType of resolution.checklistCandidates) {
+    assignment = await db.dayTypeAssignment.findUnique({
+      where: { userId_dayType: { userId: user.id, dayType } },
+    });
+    if (assignment) break;
+  }
 
   const template = assignment
     ? await db.checklistTemplate.findFirst({

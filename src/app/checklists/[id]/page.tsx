@@ -12,7 +12,11 @@ import {
 import { Card, Button } from "@/components/ui";
 import { SortableItems } from "@/components/sortable-items";
 import { AddExistingItems } from "@/components/add-existing-items";
-import { ASSIGNABLE_DAY_TYPES, DAY_TYPE_LABELS } from "@/lib/constants";
+import {
+  ASSIGNABLE_DAY_TYPES,
+  DAY_TYPE_LABELS,
+  DAY_TYPE_HINTS,
+} from "@/lib/constants";
 
 export default async function TemplateEditorPage({
   params,
@@ -135,27 +139,30 @@ export default async function TemplateEditorPage({
                 const owner = ownerByDayType.get(dayType);
                 const here = owner?.id === template.id;
                 const elsewhere = owner && owner.id !== template.id;
+                const hint = DAY_TYPE_HINTS[dayType];
                 return (
                   <label
                     key={dayType}
-                    className="flex items-center gap-3 rounded-lg px-1 py-1.5"
+                    className="flex items-start gap-3 rounded-lg px-1 py-1.5"
                   >
                     <input
                       type="checkbox"
                       name="dayTypes"
                       value={dayType}
                       defaultChecked={here}
-                      className="h-5 w-5 rounded border-border accent-[var(--accent)]"
+                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-border accent-[var(--accent)]"
                     />
-                    <span className="text-sm">
-                      {DAY_TYPE_LABELS[dayType]}
-                      {dayType === "SPECIAL" ? (
-                        <span className="text-muted"> (manual override)</span>
-                      ) : null}
+                    <span className="min-w-0 text-sm">
+                      <span className="font-medium">{DAY_TYPE_LABELS[dayType]}</span>
                       {elsewhere ? (
                         <span className="text-xs text-warning">
                           {" "}
                           — moves from {owner!.name}
+                        </span>
+                      ) : null}
+                      {hint ? (
+                        <span className="mt-0.5 block text-xs leading-snug text-muted">
+                          {hint}
                         </span>
                       ) : null}
                     </span>

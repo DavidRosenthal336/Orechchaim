@@ -7,14 +7,18 @@ export type Role = (typeof ROLES)[number];
 /// Day-types, in resolution-precedence order (highest first). The day-type
 /// engine picks the first one that matches a given date. SHABBOS outranks
 /// CHOL_HAMOED because Shabbos Chol Hamoed is still Shabbos (no phone).
+/// FAST_DAY is auto-detected on public fasts (never Shabbos/Yom Tov).
+/// BEIN_HAZMANIM replaces a plain weekday while Bein Hazmanim mode is on.
 /// SPECIAL is applied only via the manual override, never auto-detected.
 export const DAY_TYPES = [
   "YOM_TOV",
   "SHABBOS",
   "CHOL_HAMOED",
+  "FAST_DAY",
   "EREV_SHABBOS",
   "ROSH_CHODESH",
   "SUNDAY",
+  "BEIN_HAZMANIM",
   "WEEKDAY",
   "SPECIAL",
 ] as const;
@@ -24,11 +28,22 @@ export const DAY_TYPE_LABELS: Record<DayType, string> = {
   YOM_TOV: "Yom Tov",
   CHOL_HAMOED: "Chol Hamoed",
   SHABBOS: "Shabbos",
+  FAST_DAY: "Fast day",
   EREV_SHABBOS: "Erev Shabbos",
   ROSH_CHODESH: "Rosh Chodesh",
   SUNDAY: "Sunday",
+  BEIN_HAZMANIM: "Bein Hazmanim",
   SPECIAL: "Special event",
   WEEKDAY: "Weekday",
+};
+
+/// Short hints shown under a day-type in the assignment picker.
+export const DAY_TYPE_HINTS: Partial<Record<DayType, string>> = {
+  BEIN_HAZMANIM:
+    "shown on weekdays while Bein Hazmanim mode is on — Shabbos & Yom Tov keep their own lists. Falls back to your Sunday list if unset.",
+  FAST_DAY:
+    "auto-detected on fasts (Tzom Gedaliah, Asara B'Teves, Taanis Esther, Shiva Asar B'Tammuz, Tisha B'Av).",
+  SPECIAL: "manual override.",
 };
 
 /// Day-types the student can assign a checklist to in the UI. SPECIAL is
@@ -36,12 +51,14 @@ export const DAY_TYPE_LABELS: Record<DayType, string> = {
 /// valid assignment target.
 export const ASSIGNABLE_DAY_TYPES: DayType[] = [
   "WEEKDAY",
+  "BEIN_HAZMANIM",
   "SUNDAY",
   "EREV_SHABBOS",
   "SHABBOS",
   "YOM_TOV",
   "CHOL_HAMOED",
   "ROSH_CHODESH",
+  "FAST_DAY",
   "SPECIAL",
 ];
 
