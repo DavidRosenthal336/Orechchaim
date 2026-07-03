@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateSettings, type SettingsState } from "@/app/actions/settings";
+import { sendSampleReport, type SampleReportState } from "@/app/actions/report";
 import { Card, Button } from "@/components/ui";
 import { Switch } from "@/components/switch";
 
@@ -16,11 +17,17 @@ type Props = {
 };
 
 const initialState: SettingsState = {};
+const initialSample: SampleReportState = {};
 
 export function SettingsForm({ timezones, initial }: Props) {
   const [state, action, pending] = useActionState(updateSettings, initialState);
+  const [sampleState, sampleAction, samplePending] = useActionState(
+    sendSampleReport,
+    initialSample,
+  );
 
   return (
+    <div className="space-y-5">
     <form action={action} className="space-y-5">
       <Card className="space-y-5">
         <div>
@@ -65,14 +72,6 @@ export function SettingsForm({ timezones, initial }: Props) {
         />
       </Card>
 
-      <Card>
-        <h2 className="text-sm font-semibold text-foreground">Weekly report</h2>
-        <p className="mt-1 text-xs leading-relaxed text-muted">
-          Each week you&apos;ll get an email summarizing your week — forward it
-          to your rebbe.
-        </p>
-      </Card>
-
       {/* Advanced — deliberately collapsed and low-key. */}
       <details className="rounded-2xl border border-border bg-surface px-5">
         <summary className="cursor-pointer list-none py-4 text-sm font-medium text-muted">
@@ -98,5 +97,27 @@ export function SettingsForm({ timezones, initial }: Props) {
         ) : null}
       </div>
     </form>
+
+    <form action={sampleAction}>
+      <Card>
+        <h2 className="text-sm font-semibold text-foreground">Weekly report</h2>
+        <p className="mt-1 text-xs leading-relaxed text-muted">
+          Each week you&apos;ll get an email summarizing your week — forward it
+          to your rebbe. Send yourself a sample to see how it looks.
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          <Button type="submit" variant="secondary" size="sm" disabled={samplePending}>
+            {samplePending ? "Sending…" : "Email me a sample report"}
+          </Button>
+          {sampleState.ok ? (
+            <span className="text-sm text-positive">Sent — check your inbox.</span>
+          ) : null}
+          {sampleState.error ? (
+            <span className="text-sm text-danger">{sampleState.error}</span>
+          ) : null}
+        </div>
+      </Card>
+    </form>
+    </div>
   );
 }
