@@ -218,7 +218,22 @@ export async function generateAndSendWeeklyReports(
       checklists: data.checklists,
       ones: data.ones,
     };
-    await sendWeeklyReport(student.email, email);
+
+    // Always send to the student; also send to each added rebbe recipient.
+    const recipients = await db.reportRecipient.findMany({
+      where: { userId: student.id },
+      select: { email: true },
+    });
+    const seen = new Set<string>();
+    const addresses = [student.email, ...recipients.map((r) => r.email)].filter(
+      (addr) => {
+        const key = addr.trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      },
+    );
+    for (const addr of addresses) await sendWeeklyReport(addr, email);
     sent++;
   }
 

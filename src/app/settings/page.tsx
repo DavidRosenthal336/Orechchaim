@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, LogOut } from "lucide-react";
+import { db } from "@/lib/db";
 import { requireUser } from "@/lib/dal";
 import { signOut } from "@/app/actions/auth";
 import { SettingsForm } from "./settings-form";
@@ -15,6 +16,11 @@ function timezones(): string[] {
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const recipients = await db.reportRecipient.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true, email: true },
+  });
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col px-5">
@@ -38,6 +44,7 @@ export default async function SettingsPage() {
             inIsrael: user.inIsrael,
             beinHazmanimMode: user.beinHazmanimMode,
           }}
+          recipients={recipients}
         />
 
         <Card className="flex items-center justify-between gap-4">

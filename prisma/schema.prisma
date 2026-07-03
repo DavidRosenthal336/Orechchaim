@@ -55,11 +55,12 @@ model User {
   rebbe    User?   @relation("StudentRebbe", fields: [rebbeId], references: [id])
   students User[]  @relation("StudentRebbe")
 
-  templates       ChecklistTemplate[]
-  assignments     DayTypeAssignment[]
-  dayEntries      DayEntry[]
-  weeklyReports   WeeklyReport[]      @relation("ReportStudent")
-  decidedOnes     DayEntry[]          @relation("OnesDecider")
+  templates        ChecklistTemplate[]
+  assignments      DayTypeAssignment[]
+  dayEntries       DayEntry[]
+  weeklyReports    WeeklyReport[]      @relation("ReportStudent")
+  decidedOnes      DayEntry[]          @relation("OnesDecider")
+  reportRecipients ReportRecipient[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -193,6 +194,20 @@ model ItemCheck {
   updatedAt DateTime @updatedAt
 
   @@index([dayEntryId])
+}
+
+/// An extra recipient (a rebbe) the student's weekly report is emailed to,
+/// straight from the app. The student always gets their own copy too.
+model ReportRecipient {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String?
+  email  String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 /// A generated weekly summary (Sunday → Motzei Shabbos) for one student.

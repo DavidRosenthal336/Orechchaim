@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { DateTime } from "luxon";
 import { ensureDayEntry, loadDay } from "@/lib/day";
 import { formatCivilDate } from "@/lib/calendar";
 import { DAY_TYPE_LABELS } from "@/lib/constants";
 import { submitDay, reopenDay } from "@/app/actions/day";
 import { DayChecklist } from "@/components/day-checklist";
-import { SpecialEventForm } from "@/components/special-event-form";
 import { Card, Button, ButtonLink } from "@/components/ui";
 import { isHebrew } from "@/lib/utils";
 
@@ -71,11 +69,6 @@ export async function DayView({
             Set up a checklist
           </ButtonLink>
         </Card>
-        {window.state === "OPEN" ? (
-          <Card className="mt-3">
-            <SpecialEventForm dateKey={dateKey} />
-          </Card>
-        ) : null}
       </div>
     );
   }
@@ -170,18 +163,6 @@ export async function DayView({
             This day is closed — it can no longer be edited.
           </Card>
         ) : null}
-
-        {editable ? (
-          <div className="pt-1 text-center">
-            <SpecialEventForm dateKey={dateKey} />
-          </div>
-        ) : null}
-
-        <div className="pt-2 text-center">
-          <Link href="/checklists" className="text-xs text-muted hover:underline">
-            Manage checklists
-          </Link>
-        </div>
       </div>
     </div>
   );
