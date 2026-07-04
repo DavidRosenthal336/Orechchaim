@@ -59,6 +59,7 @@ model User {
   assignments      DayTypeAssignment[]
   dayEntries       DayEntry[]
   weeklyReports    WeeklyReport[]      @relation("ReportStudent")
+  monthlyReports   MonthlyReport[]     @relation("MonthlyReportStudent")
   decidedOnes      DayEntry[]          @relation("OnesDecider")
   reportRecipients ReportRecipient[]
 
@@ -231,5 +232,26 @@ model WeeklyReport {
   createdAt DateTime @default(now())
 
   @@unique([studentId, weekStartKey])
+  @@index([studentId])
+}
+
+/// A generated monthly summary for one student, sent each Rosh Chodesh for the
+/// Hebrew month that just ended.
+model MonthlyReport {
+  id        String @id @default(cuid())
+  studentId String
+  student   User   @relation("MonthlyReportStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  monthStartKey String // civil "YYYY-MM-DD" of the 1st of the Hebrew month
+  monthEndKey   String // civil "YYYY-MM-DD" of the last day
+  monthLabel    String // e.g. "Iyyar 5785"
+
+  daysTracked Int @default(0)
+  payload     String
+  sentAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, monthStartKey])
   @@index([studentId])
 }

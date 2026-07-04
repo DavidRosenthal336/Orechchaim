@@ -1,15 +1,16 @@
 import "server-only";
 import { DateTime } from "luxon";
 import { db } from "@/lib/db";
-import { resolveDayType, todayKey } from "@/lib/calendar";
+import { resolveDayType, todayKey, monthReportRangeFor } from "@/lib/calendar";
 import {
   computeDayWindow,
   resolveOptsFor,
+  addDaysToKey,
   type DayUserSettings,
 } from "@/lib/dayWindow";
 import { weekStartKey, weekEndKey, weekDayKeys, shiftWeeks, formatWeekRange } from "@/lib/week";
 import { DAY_TYPE_LABELS } from "@/lib/constants";
-import { sendWeeklyReport, type WeeklyReportEmail } from "@/lib/email";
+import { sendReport, type ReportEmail } from "@/lib/email";
 
 type ReportStudent = DayUserSettings & { name: string | null; email: string };
 
@@ -29,13 +30,17 @@ export type ReportChecklist = {
 
 export type ReportOnes = { date: string; item: string; reason: string | null };
 
-/// Aggregates a student's week by checklist: for each checklist that ran, each
+/// Aggregates a span of days by checklist: for each checklist that ran, each
 /// item's done/counted fraction (excused days drop out of the denominator),
 /// plus a flat list of every אונס with its day + reason. Missed days count
 /// against the fraction (denominator includes days that weren't filled in).
-async function buildWeeklyReport(student: ReportStudent, weekStart: string, now: Date) {
+/// Used for both the weekly and the monthly report.
+async function buildReportForDays(
+  student: ReportStudent,
+  dayKeys: string[],
+  now: Date,
+) {
   const opts = resolveOptsFor(student);
-  const dayKeys = weekDayKeys(weekStart);
 
   const entries = await db.dayEntry.findMany({
     where: { userId: student.id, dateKey: { in: dayKeys } },
@@ -159,9 +164,28 @@ async function buildWeeklyReport(student: ReportStudent, weekStart: string, now:
   return { daysRan, daysFilled, checklists, ones: onesFormatted };
 }
 
+/// The report's recipients: always the student, plus each added rebbe,
+/// de-duplicated case-insensitively.
+async function reportAddresses(
+  studentId: string,
+  studentEmail: string,
+): Promise<string[]> {
+  const recipients = await db.reportRecipient.findMany({
+    where: { userId: studentId },
+    select: { email: true },
+  });
+  const seen = new Set<string>();
+  return [studentEmail, ...recipients.map((r) => r.email)].filter((addr) => {
+    const key = addr.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /// Generates + emails any not-yet-sent weekly reports for the most recently
-/// completed week, to each student's own email (they forward it to their
-/// rebbe). Idempotent (WeeklyReport is unique per student + week).
+/// completed week, to the student + their rebbe recipients. Idempotent
+/// (WeeklyReport is unique per student + week).
 export async function generateAndSendWeeklyReports(
   now: Date = new Date(),
 ): Promise<{ sent: number; skipped: number }> {
@@ -197,7 +221,11 @@ export async function generateAndSendWeeklyReports(
       continue;
     }
 
-    const data = await buildWeeklyReport(student, completedWeekStart, now);
+    const data = await buildReportForDays(
+      student,
+      weekDayKeys(completedWeekStart),
+      now,
+    );
 
     await db.weeklyReport.create({
       data: {
@@ -210,30 +238,102 @@ export async function generateAndSendWeeklyReports(
       },
     });
 
-    const email: WeeklyReportEmail = {
+    const email: ReportEmail = {
       studentName: student.name ?? "",
-      weekRange: formatWeekRange(completedWeekStart),
+      periodNoun: "week",
+      periodLabel: formatWeekRange(completedWeekStart),
       daysRan: data.daysRan,
       daysFilled: data.daysFilled,
       checklists: data.checklists,
       ones: data.ones,
     };
+    for (const addr of await reportAddresses(student.id, student.email)) {
+      await sendReport(addr, email);
+    }
+    sent++;
+  }
 
-    // Always send to the student; also send to each added rebbe recipient.
-    const recipients = await db.reportRecipient.findMany({
-      where: { userId: student.id },
-      select: { email: true },
+  return { sent, skipped };
+}
+
+/// The civil day-keys from start to end (inclusive). Both "YYYY-MM-DD".
+function dayKeyRange(startKey: string, endKey: string): string[] {
+  const keys: string[] = [];
+  for (let k = startKey; k <= endKey; k = addDaysToKey(k, 1)) keys.push(k);
+  return keys;
+}
+
+/// Generates + emails the monthly report on Rosh Chodesh (the 1st of a Hebrew
+/// month), covering the whole Hebrew month that just ended. Sent to the
+/// student + their rebbe recipients. Idempotent (MonthlyReport is unique per
+/// student + month). A no-op on any day that isn't a Rosh Chodesh.
+export async function generateAndSendMonthlyReports(
+  now: Date = new Date(),
+): Promise<{ sent: number; skipped: number }> {
+  const students = await db.user.findMany();
+
+  let sent = 0;
+  let skipped = 0;
+
+  for (const student of students) {
+    const today = todayKey(student.timezone, now);
+    const range = monthReportRangeFor(today);
+    if (!range) {
+      skipped++;
+      continue; // not the 1st of a Hebrew month for this student today
+    }
+
+    const hasChecklist = await db.checklistTemplate.count({
+      where: { userId: student.id, isArchived: false },
     });
-    const seen = new Set<string>();
-    const addresses = [student.email, ...recipients.map((r) => r.email)].filter(
-      (addr) => {
-        const key = addr.trim().toLowerCase();
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
+    if (hasChecklist === 0) {
+      skipped++;
+      continue;
+    }
+
+    const existing = await db.monthlyReport.findUnique({
+      where: {
+        studentId_monthStartKey: {
+          studentId: student.id,
+          monthStartKey: range.monthStartKey,
+        },
       },
+    });
+    if (existing) {
+      skipped++;
+      continue;
+    }
+
+    const data = await buildReportForDays(
+      student,
+      dayKeyRange(range.monthStartKey, range.monthEndKey),
+      now,
     );
-    for (const addr of addresses) await sendWeeklyReport(addr, email);
+
+    await db.monthlyReport.create({
+      data: {
+        studentId: student.id,
+        monthStartKey: range.monthStartKey,
+        monthEndKey: range.monthEndKey,
+        monthLabel: range.monthLabel,
+        daysTracked: data.daysFilled,
+        payload: JSON.stringify(data),
+        sentAt: new Date(),
+      },
+    });
+
+    const email: ReportEmail = {
+      studentName: student.name ?? "",
+      periodNoun: "month",
+      periodLabel: range.monthLabel,
+      daysRan: data.daysRan,
+      daysFilled: data.daysFilled,
+      checklists: data.checklists,
+      ones: data.ones,
+    };
+    for (const addr of await reportAddresses(student.id, student.email)) {
+      await sendReport(addr, email);
+    }
     sent++;
   }
 

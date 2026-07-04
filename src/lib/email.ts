@@ -80,9 +80,10 @@ export type WeeklyReportOnes = {
   item: string;
   reason: string | null;
 };
-export type WeeklyReportEmail = {
+export type ReportEmail = {
   studentName: string;
-  weekRange: string;
+  periodNoun: "week" | "month"; // heading noun
+  periodLabel: string; // e.g. "Jun 8 – 14" or "Iyyar 5785"
   daysRan: number;
   daysFilled: number;
   checklists: WeeklyReportChecklist[];
@@ -98,14 +99,15 @@ function fractionText(it: WeeklyReportItem): string {
   return `${it.done}/${it.denom}${it.excused > 0 ? " *" : ""}`;
 }
 
-export async function sendWeeklyReport(
-  to: string,
-  data: WeeklyReportEmail,
-): Promise<void> {
+export async function sendReport(to: string, data: ReportEmail): Promise<void> {
   const name = data.studentName.trim();
-  // "Dovid Rosenthal's week" when a name is set, else "Your week".
-  const heading = name ? `${name}${name.endsWith("s") ? "'" : "'s"} week` : "Your week";
-  const subject = `${name ? `${name} — ` : "Your "}Orech Chaim report — ${data.weekRange}`;
+  const noun = data.periodNoun; // "week" | "month"
+  const adj = noun === "week" ? "weekly" : "monthly";
+  // "Dovid Rosenthal's month" when a name is set, else "Your month".
+  const heading = name
+    ? `${name}${name.endsWith("s") ? "'" : "'s"} ${noun}`
+    : `Your ${noun}`;
+  const subject = `${name ? `${name} — ` : "Your "}Orech Chaim ${adj} report — ${data.periodLabel}`;
   const daysLabel = `Filled in ${data.daysFilled} of ${data.daysRan} day${
     data.daysRan === 1 ? "" : "s"
   }`;
@@ -115,7 +117,7 @@ export async function sendWeeklyReport(
 
   // ---- plain text ----
   const textParts: string[] = [
-    `${heading} — ${data.weekRange}. Forward this to your rebbe.`,
+    `${heading} — ${data.periodLabel}. Forward this to your rebbe.`,
     "",
     daysLabel,
   ];
@@ -127,12 +129,15 @@ export async function sendWeeklyReport(
     for (const it of c.items) textParts.push(`  ${it.label}  ${fractionText(it)}`);
   }
   if (data.ones.length > 0) {
-    textParts.push("", `אונס this week (${data.ones.length}):`);
+    textParts.push("", `אונס this ${noun} (${data.ones.length}):`);
     for (const o of data.ones)
       textParts.push(`  ${o.date} · ${o.item}${o.reason ? ` — ${o.reason}` : ""}`);
   }
   if (anyExcused)
-    textParts.push("", "* an אונס that week — excused, so it's left out of the count.");
+    textParts.push(
+      "",
+      `* an אונס that ${noun} — excused, so it's left out of the count.`,
+    );
   const text = textParts.join("\n");
 
   // ---- html ----
@@ -164,7 +169,7 @@ export async function sendWeeklyReport(
   const onesHtml =
     data.ones.length > 0
       ? `<div style="border:1px solid #f0e2c8;background:#fbf6ea;border-radius:12px;padding:14px 16px;margin:0 0 12px">
-          <p style="margin:0 0 8px;font-size:15px;font-weight:700">אונס this week (${data.ones.length})</p>
+          <p style="margin:0 0 8px;font-size:15px;font-weight:700">אונס this ${noun} (${data.ones.length})</p>
           <table style="width:100%;border-collapse:collapse">
           ${data.ones
             .map(
@@ -181,13 +186,13 @@ export async function sendWeeklyReport(
       : "";
 
   const footnote = anyExcused
-    ? `<p style="margin:4px 0 0;color:#8a97a8;font-size:11px">* an אונס that week — excused, so it's left out of the count.</p>`
+    ? `<p style="margin:4px 0 0;color:#8a97a8;font-size:11px">* an אונס that ${noun} — excused, so it's left out of the count.</p>`
     : "";
 
   const html = `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#243044">
     <h1 style="font-size:20px;margin:0 0 4px">${esc(heading)}</h1>
-    <p style="margin:0 0 14px;color:#5b6b82;font-size:14px">${data.weekRange} · forward to your rebbe</p>
+    <p style="margin:0 0 14px;color:#5b6b82;font-size:14px">${esc(data.periodLabel)} · forward to your rebbe</p>
     <div style="background:#e7eefb;border-radius:12px;padding:12px 16px;margin:0 0 16px">
       <p style="margin:0;font-size:16px;font-weight:700">${daysLabel}</p>
     </div>

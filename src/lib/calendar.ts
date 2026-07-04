@@ -149,3 +149,35 @@ export function formatCivilDate(dateKey: string): string {
   const { year, month, day } = parseDateKey(dateKey);
   return DateTime.fromObject({ year, month, day }).toFormat("cccc, LLLL d");
 }
+
+function ymdKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/// If `dateKey` is the 1st of a Hebrew month (Rosh Chodesh), returns the civil
+/// day-range and label of the Hebrew month that just ended — for the monthly
+/// report. Otherwise null.
+export function monthReportRangeFor(
+  dateKey: string,
+): { monthStartKey: string; monthEndKey: string; monthLabel: string } | null {
+  const { year, month, day } = parseDateKey(dateKey);
+  const todayHD = new HDate(new Date(year, month - 1, day));
+  if (todayHD.getDate() !== 1) return null;
+
+  // Yesterday is the last day of the month that just ended.
+  const yest = new Date(year, month - 1, day);
+  yest.setDate(yest.getDate() - 1);
+  const yestHD = new HDate(yest);
+  const hMonth = yestHD.getMonth();
+  const hYear = yestHD.getFullYear();
+
+  const firstGreg = new HDate(1, hMonth, hYear).greg();
+  return {
+    monthStartKey: ymdKey(firstGreg),
+    monthEndKey: ymdKey(yest),
+    monthLabel: `${yestHD.getMonthName()} ${hYear}`,
+  };
+}

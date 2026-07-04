@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { resolveDayType, resolveDayTypeForYmd, todayKey } from "@/lib/calendar";
+import {
+  resolveDayType,
+  resolveDayTypeForYmd,
+  todayKey,
+  monthReportRangeFor,
+} from "@/lib/calendar";
 
 // All dates use the Diaspora schedule (inIsrael: false) unless noted.
 
@@ -134,6 +139,21 @@ describe("Fast days", () => {
     }); // Thu fast during bein hazmanim
     expect(r.dayType).toBe("FAST_DAY");
     expect(r.checklistCandidates).toEqual(["FAST_DAY", "BEIN_HAZMANIM", "SUNDAY"]);
+  });
+});
+
+describe("monthly report range (Rosh Chodesh)", () => {
+  it("returns the previous Hebrew month on the 1st of a month", () => {
+    // May 28, 2025 = 1 Sivan 5785 (Rosh Chodesh Sivan).
+    const r = monthReportRangeFor("2025-05-28");
+    expect(r).not.toBeNull();
+    expect(r!.monthEndKey).toBe("2025-05-27"); // last day of Iyyar
+    expect(r!.monthStartKey).toBe("2025-04-29"); // 1 Iyyar
+    expect(r!.monthLabel).toMatch(/Iyyar 5785/);
+  });
+
+  it("is null on a day that isn't Rosh Chodesh", () => {
+    expect(monthReportRangeFor("2025-05-27")).toBeNull();
   });
 });
 
