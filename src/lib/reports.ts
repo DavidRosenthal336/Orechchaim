@@ -195,62 +195,76 @@ export async function generateAndSendWeeklyReports(
   let skipped = 0;
 
   for (const student of students) {
-    const hasChecklist = await db.checklistTemplate.count({
-      where: { userId: student.id, isArchived: false },
-    });
-    if (hasChecklist === 0) {
-      skipped++;
-      continue;
-    }
+    // One student's failure must not block the rest; an un-stamped report
+    // (sentAt null) is retried on the next daily run.
+    try {
+      const hasChecklist = await db.checklistTemplate.count({
+        where: { userId: student.id, isArchived: false },
+      });
+      if (hasChecklist === 0) {
+        skipped++;
+        continue;
+      }
 
-    const completedWeekStart = shiftWeeks(
-      weekStartKey(todayKey(student.timezone, now)),
-      -1,
-    );
-
-    const existing = await db.weeklyReport.findUnique({
-      where: {
+      const completedWeekStart = shiftWeeks(
+        weekStartKey(todayKey(student.timezone, now)),
+        -1,
+      );
+      const where = {
         studentId_weekStartKey: {
           studentId: student.id,
           weekStartKey: completedWeekStart,
         },
-      },
-    });
-    if (existing) {
+      };
+
+      const existing = await db.weeklyReport.findUnique({ where });
+      if (existing?.sentAt) {
+        skipped++;
+        continue;
+      }
+
+      const data = await buildReportForDays(
+        student,
+        weekDayKeys(completedWeekStart),
+        now,
+      );
+
+      // Record first (sentAt null), stamp sentAt only after the emails went
+      // out — so a send failure is retried rather than silently lost.
+      const report = await db.weeklyReport.upsert({
+        where,
+        create: {
+          studentId: student.id,
+          weekStartKey: completedWeekStart,
+          weekEndKey: weekEndKey(completedWeekStart),
+          daysTracked: data.daysFilled,
+          payload: JSON.stringify(data),
+        },
+        update: { daysTracked: data.daysFilled, payload: JSON.stringify(data) },
+      });
+
+      const email: ReportEmail = {
+        studentName: student.name ?? "",
+        periodNoun: "week",
+        periodLabel: formatWeekRange(completedWeekStart),
+        daysRan: data.daysRan,
+        daysFilled: data.daysFilled,
+        checklists: data.checklists,
+        ones: data.ones,
+      };
+      for (const addr of await reportAddresses(student.id, student.email)) {
+        await sendReport(addr, email);
+      }
+
+      await db.weeklyReport.update({
+        where: { id: report.id },
+        data: { sentAt: new Date() },
+      });
+      sent++;
+    } catch (err) {
+      console.error(`weekly report failed for ${student.email}:`, err);
       skipped++;
-      continue;
     }
-
-    const data = await buildReportForDays(
-      student,
-      weekDayKeys(completedWeekStart),
-      now,
-    );
-
-    await db.weeklyReport.create({
-      data: {
-        studentId: student.id,
-        weekStartKey: completedWeekStart,
-        weekEndKey: weekEndKey(completedWeekStart),
-        daysTracked: data.daysFilled,
-        payload: JSON.stringify(data),
-        sentAt: new Date(),
-      },
-    });
-
-    const email: ReportEmail = {
-      studentName: student.name ?? "",
-      periodNoun: "week",
-      periodLabel: formatWeekRange(completedWeekStart),
-      daysRan: data.daysRan,
-      daysFilled: data.daysFilled,
-      checklists: data.checklists,
-      ones: data.ones,
-    };
-    for (const addr of await reportAddresses(student.id, student.email)) {
-      await sendReport(addr, email);
-    }
-    sent++;
   }
 
   return { sent, skipped };
@@ -276,65 +290,76 @@ export async function generateAndSendMonthlyReports(
   let skipped = 0;
 
   for (const student of students) {
-    const today = todayKey(student.timezone, now);
-    const range = monthReportRangeFor(today);
-    if (!range) {
-      skipped++;
-      continue; // not the 1st of a Hebrew month for this student today
-    }
+    try {
+      const today = todayKey(student.timezone, now);
+      const range = monthReportRangeFor(today);
+      if (!range) {
+        skipped++;
+        continue; // not the 1st of a Hebrew month for this student today
+      }
 
-    const hasChecklist = await db.checklistTemplate.count({
-      where: { userId: student.id, isArchived: false },
-    });
-    if (hasChecklist === 0) {
-      skipped++;
-      continue;
-    }
+      const hasChecklist = await db.checklistTemplate.count({
+        where: { userId: student.id, isArchived: false },
+      });
+      if (hasChecklist === 0) {
+        skipped++;
+        continue;
+      }
 
-    const existing = await db.monthlyReport.findUnique({
-      where: {
+      const where = {
         studentId_monthStartKey: {
           studentId: student.id,
           monthStartKey: range.monthStartKey,
         },
-      },
-    });
-    if (existing) {
+      };
+      const existing = await db.monthlyReport.findUnique({ where });
+      if (existing?.sentAt) {
+        skipped++;
+        continue;
+      }
+
+      const data = await buildReportForDays(
+        student,
+        dayKeyRange(range.monthStartKey, range.monthEndKey),
+        now,
+      );
+
+      // Same retry-safe pattern as the weekly: stamp sentAt only after send.
+      const report = await db.monthlyReport.upsert({
+        where,
+        create: {
+          studentId: student.id,
+          monthStartKey: range.monthStartKey,
+          monthEndKey: range.monthEndKey,
+          monthLabel: range.monthLabel,
+          daysTracked: data.daysFilled,
+          payload: JSON.stringify(data),
+        },
+        update: { daysTracked: data.daysFilled, payload: JSON.stringify(data) },
+      });
+
+      const email: ReportEmail = {
+        studentName: student.name ?? "",
+        periodNoun: "month",
+        periodLabel: range.monthLabel,
+        daysRan: data.daysRan,
+        daysFilled: data.daysFilled,
+        checklists: data.checklists,
+        ones: data.ones,
+      };
+      for (const addr of await reportAddresses(student.id, student.email)) {
+        await sendReport(addr, email);
+      }
+
+      await db.monthlyReport.update({
+        where: { id: report.id },
+        data: { sentAt: new Date() },
+      });
+      sent++;
+    } catch (err) {
+      console.error(`monthly report failed for ${student.email}:`, err);
       skipped++;
-      continue;
     }
-
-    const data = await buildReportForDays(
-      student,
-      dayKeyRange(range.monthStartKey, range.monthEndKey),
-      now,
-    );
-
-    await db.monthlyReport.create({
-      data: {
-        studentId: student.id,
-        monthStartKey: range.monthStartKey,
-        monthEndKey: range.monthEndKey,
-        monthLabel: range.monthLabel,
-        daysTracked: data.daysFilled,
-        payload: JSON.stringify(data),
-        sentAt: new Date(),
-      },
-    });
-
-    const email: ReportEmail = {
-      studentName: student.name ?? "",
-      periodNoun: "month",
-      periodLabel: range.monthLabel,
-      daysRan: data.daysRan,
-      daysFilled: data.daysFilled,
-      checklists: data.checklists,
-      ones: data.ones,
-    };
-    for (const addr of await reportAddresses(student.id, student.email)) {
-      await sendReport(addr, email);
-    }
-    sent++;
   }
 
   return { sent, skipped };

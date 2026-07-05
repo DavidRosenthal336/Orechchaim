@@ -156,10 +156,19 @@ export async function getCatchUpDays(
     });
     if (entry?.status === "SUBMITTED") continue;
 
-    const assignment = await db.dayTypeAssignment.findUnique({
-      where: { userId_dayType: { userId: user.id, dayType: resolution.dayType } },
-    });
-    if (!assignment) continue;
+    // Walk the fallback chain (e.g. a fast day with no fast-day list still
+    // runs on the weekday list), matching what loadDay shows.
+    let hasChecklist = false;
+    for (const dayType of resolution.checklistCandidates) {
+      const assignment = await db.dayTypeAssignment.findUnique({
+        where: { userId_dayType: { userId: user.id, dayType } },
+      });
+      if (assignment) {
+        hasChecklist = true;
+        break;
+      }
+    }
+    if (!hasChecklist) continue;
 
     results.push({
       dateKey,

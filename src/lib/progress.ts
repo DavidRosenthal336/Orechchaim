@@ -72,7 +72,8 @@ export async function getWeekBoard(
       else status = "MISSED";
     } else if (window.state === "FUTURE") {
       status = "UPCOMING";
-    } else if (!assigned.has(dayType)) {
+    } else if (!resolution.checklistCandidates.some((d) => assigned.has(d))) {
+      // Honor the fallback chain (fast day → weekday, etc.), like loadDay.
       status = "NO_CHECKLIST";
     } else if (window.state === "ASSUR_WAIT") {
       status = "ASSUR_WAIT";

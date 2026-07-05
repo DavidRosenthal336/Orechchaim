@@ -60,8 +60,10 @@ export async function toggleItem(
 
   await db.itemCheck.updateMany({
     where: { id: itemCheckId, dayEntryId },
-    // Checking an item clears any אונס on it.
-    data: { checked: Boolean(checked), ones: checked ? false : undefined },
+    // Checking an item clears any אונס on it (flag and reason).
+    data: checked
+      ? { checked: true, ones: false, onesReason: null }
+      : { checked: false },
   });
   await recomputeEntry(dayEntryId);
   revalidateDay(entry.dateKey);

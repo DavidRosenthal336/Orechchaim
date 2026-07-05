@@ -152,8 +152,18 @@ describe("monthly report range (Rosh Chodesh)", () => {
     expect(r!.monthLabel).toMatch(/Iyyar 5785/);
   });
 
-  it("is null on a day that isn't Rosh Chodesh", () => {
-    expect(monthReportRangeFor("2025-05-27")).toBeNull();
+  it("keeps the same range through the retry grace window (2nd–3rd)", () => {
+    // May 29, 2025 = 2 Sivan — still reports Iyyar, so a failed send retries.
+    const r = monthReportRangeFor("2025-05-29");
+    expect(r).not.toBeNull();
+    expect(r!.monthStartKey).toBe("2025-04-29");
+    expect(r!.monthEndKey).toBe("2025-05-27");
+    expect(r!.monthLabel).toMatch(/Iyyar 5785/);
+  });
+
+  it("is null past the grace window", () => {
+    expect(monthReportRangeFor("2025-05-27")).toBeNull(); // 29 Iyyar
+    expect(monthReportRangeFor("2025-06-01")).toBeNull(); // 5 Sivan
   });
 });
 
