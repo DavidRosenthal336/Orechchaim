@@ -18,7 +18,7 @@ const appHebrew = Heebo({
 export const metadata: Metadata = {
   title: "Orech Chaim",
   description:
-    "A daily growth checklist, based on the Jewish calendar — to stay with what you've gained.",
+    "A daily growth checklist, based on the Jewish calendar — maintain, and grow.",
   applicationName: "Orech Chaim",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

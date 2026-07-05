@@ -15,7 +15,7 @@ export default function LandingPage() {
           Daily growth, on the Jewish calendar
         </p>
         <h1 className="text-3xl font-bold leading-tight tracking-tight">
-          Stay with what you&apos;ve gained.
+          Maintain. Grow.
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted">
           A simple, trust-based daily checklist. Check off what you did each
